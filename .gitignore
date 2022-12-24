@@ -4,3 +4,4 @@ cifar-10-batches-py/
 *.tar.gz
 *.log
 *.swp
+util/__pycache__/
