@@ -269,8 +269,6 @@ if __name__ == '__main__':
     optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.999))
     optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
 
-    # In[13]:
-
     # Load model
     # Check if best cp of model exists
     best_cp_d_path = model_path / 'model_weights_netD_best.pth'
@@ -487,3 +485,17 @@ if __name__ == '__main__':
     # https://pytorch.org/tutorials/beginner/basics/saveloadrun_tutorial.html#save-and-load-the-model
     torch.save(netD.state_dict(), model_path / f'model_weights_netD_last.pth')
     torch.save(netG.state_dict(), model_path / f'model_weights_netG_last.pth')
+
+    # Save Inception Sore and FID (Frechet Inception Distance)
+    # TODO implement
+    # Load best cp
+
+    # Load model
+    # Check if best cp of model exists
+    best_cp_d_path = model_path / 'model_weights_netD_best.pth'
+    best_cp_g_path = model_path / 'model_weights_netG_best.pth'
+    tr_d_path = model_path / 'training_data.npz'
+
+    if os.path.exists(best_cp_d_path) and os.path.exists(best_cp_g_path):
+        netD.load_state_dict(torch.load(best_cp_d_path))
+        netG.load_state_dict(torch.load(best_cp_g_path))
