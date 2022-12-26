@@ -1,25 +1,23 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os
-import random
-import torch.optim as optim
-import torchvision.utils as vutils
-import pickle
-from pathlib import Path
 import argparse
+import os
+import pickle
+import random
+from pathlib import Path
+
+import numpy as np
 import torch
+import torch.optim as optim
+import torch.utils.data
+import torchvision.utils as vutils
 from torch import nn
 from torch.nn import functional as F
-import torch.utils.data
-from torchvision.models.inception import inception_v3
 from torch.utils.data import Dataset
-import numpy as np
+
 from util import visualization as vis
-
-from scipy.stats import entropy
-
-from matplotlib import pyplot as plt
+from util import metrics as me
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="cGAN for NN PR",
@@ -285,95 +283,24 @@ if __name__ == '__main__':
         D_losses = list(tr_d['D_losses'])
         inc_scores = list(tr_d['inc_scores'])
         best_epoch = int(tr_d['best_epoch'])
-        cur_epoch = int(tr_d['cur_epoch'])
+        start_epoch = int(tr_d['start_epoch'])
     else:
         img_list = []
         G_losses = []
         D_losses = []
         inc_scores = []
         best_epoch = 0
+        start_epoch = 0
 
-
-    def inception_score(imgs, cuda=True, batch_size=128, upscale=False, splits=1):
-        # Evaluate model
-        # Inception score
-        # Idee: Nutze pretrained inceptionv3 Klassifikator und berechne zuerst die marginale Distribution von
-        # random gesampleten images vom Generator p(y), wobei y die Label bezeichne
-        # Berechne dann noch p(y|x) für jedes weitere generierte Bild x
-        """Computes the inception score of the generated images imgs
-        imgs -- Torch dataset of (3xHxW) numpy images normalized in the range [-1, 1]
-        cuda -- whether or not to run on GPU
-        batch_size -- batch size for feeding into Inception v3
-        splits -- number of splits
-        """
-        # How should N be chosen? 50.000 as the original paper suggests: Improved Techniques for Training GANs
-        N = len(imgs)
-
-        assert batch_size > 0
-        assert N > batch_size
-
-        #     print(torch.cuda.memory_summary(device=None, abbreviated=True))
-
-        # Set up dtype
-        if cuda:
-            dtype = torch.cuda.FloatTensor
-        else:
-            if torch.cuda.is_available():
-                print("WARNING: You have a CUDA device, so you should probably set cuda=True")
-            dtype = torch.FloatTensor
-
-        # Set up dataloader
-        dataloader = torch.utils.data.DataLoader(imgs, batch_size=batch_size)
-
-        # Load inception model
-        inception_model = inception_v3(pretrained=True, transform_input=False).type(dtype)
-        inception_model.eval()
-        # Inceptionv3 was trained on 299x299 images
-        up = nn.Upsample(size=(299, 299), mode='bilinear').type(dtype)
-
-        def get_pred(x):
-            if upscale:
-                x = up(x)
-            x = inception_model(x)
-            return F.softmax(x, dim=-1).data.cpu().numpy()
-
-        # Get predictions: N x 1000, weil wir N viele Bilder reinfeeden
-        preds = np.zeros((N, 1000))
-
-        for i, batch in enumerate(dataloader, 0):
-            batch = batch.type(dtype)
-            batch.to(device)
-            batch_size_i = batch.size()[0]
-            # Save batch at correct positions.
-            #         print(f"Before getting predictions of batch:")
-            preds[i * batch_size:i * batch_size + batch_size_i] = get_pred(batch)
-        #         print(f"After getting batch predictions:")
-
-        # Now compute the mean kl-div
-        split_scores = []
-
-        for k in range(splits):
-            part = preds[k * (N // splits): (k + 1) * (N // splits), :]
-            # Ist py, weil fuer jedes Element aus axis!=0, also 1 (Was einem Label entspricht) der Mitterlwert genommen wird
-            py = np.mean(part, axis=0)
-            scores = []
-            for i in range(part.shape[0]):
-                pyx = part[i, :]
-                scores.append(entropy(pyx, py))
-            split_scores.append(np.exp(np.mean(scores)))
-
-        return np.mean(split_scores), np.std(split_scores)
-
-
-    cur_epoch = 0
     no_improve_count = 0
     num_epochs = 100
     num_img_inception = 5000
+    epoch = 0
 
     if args.training:
         # Lists to keep track of progress
         print("Starting Training Loop...")
-        for epoch in range(num_epochs):
+        for epoch in range(start_epoch, num_epochs):
             for i, data in enumerate(dataloader):
                 ############################
                 # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
@@ -433,25 +360,16 @@ if __name__ == '__main__':
                 G_losses.append(errG.item())
                 D_losses.append(errD.item())
 
-                cur_epoch += 1
             # Each Epoch do:
             # Check how the generator is doing by saving G's output on fixed_noise
             with torch.no_grad():
                 fake = netG(fixed_noise, fixed_labels).detach().cpu()
                 img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
             # Calc Inception Score for Epoch
-            gen_imgs = []
-            netG.eval()
-            #         print(f"Before generating images:")
-            for _ in range(num_img_inception):
-                noise = torch.randn(1, nz, 1, 1, device=device)
-                rand_label = torch.rand(1, device=device) * 9
-                gen_imgs.append(netG(noise, rand_label).squeeze().detach().cpu())
-            netG.train()
-            #         print(f"After generating images:")
-            #         print(f"Flushing GPU cache")
 
-            is_mean, is_std = inception_score(gen_imgs, splits=5, batch_size=32, upscale=True)
+            # TODO: Does this work? pen
+            gen_imgs = me.gen_images(netG, device, nz)
+            is_mean, is_std = me.inception_score_own(gen_imgs, device, splits=5, batch_size=32, upscale=True)
             inc_scores.append((is_mean, is_std))
             # Save best pt, compare mean.
             if is_mean >= max(inc_scores, key=lambda x: x[0])[0]:
@@ -479,23 +397,29 @@ if __name__ == '__main__':
              D_losses=D_losses,
              inc_scores=inc_scores,
              best_epoch=best_epoch,
-             cur_epoch=cur_epoch)
+             start_epoch=epoch)
 
     # Save model after training:
     # https://pytorch.org/tutorials/beginner/basics/saveloadrun_tutorial.html#save-and-load-the-model
     torch.save(netD.state_dict(), model_path / f'model_weights_netD_last.pth')
     torch.save(netG.state_dict(), model_path / f'model_weights_netG_last.pth')
 
-    # Save Inception Sore and FID (Frechet Inception Distance)
-    # TODO implement
+    # Save Inception Sore and FID (Frechet Inception Distance) of best checkpoint
     # Load best cp
-
-    # Load model
     # Check if best cp of model exists
     best_cp_d_path = model_path / 'model_weights_netD_best.pth'
     best_cp_g_path = model_path / 'model_weights_netG_best.pth'
-    tr_d_path = model_path / 'training_data.npz'
 
     if os.path.exists(best_cp_d_path) and os.path.exists(best_cp_g_path):
         netD.load_state_dict(torch.load(best_cp_d_path))
         netG.load_state_dict(torch.load(best_cp_g_path))
+
+    # Calculate Inception score both self-implemented and torchmetrics implementation
+    gen_imgs = me.gen_images(netG, device, nz)
+    inc_score_self = me.inception_score_own(gen_imgs, device, batch_size=32, upscale=True, splits=10)
+    inc_score_torch = me.inception_score_torchmetrics(gen_imgs)
+
+    # Save best scores
+    with open(model_path / 'final_inception_score.txt', 'w+') as f:
+        f.write(f"Inception scores self. Mean: {inc_score_self[0]}, std: {inc_score_self[1]}")
+        f.write(f"Inception scores self. Mean: {inc_score_torch[0]}, std: {inc_score_torch[1]}")
