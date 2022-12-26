@@ -16,7 +16,7 @@ def gen_images(generator, device, nz):
 
     # Generate 1000 images 100 per class as the ex sheet states.
     gen_imgs = []
-    labels = torch.arange(0, 10).repeat(100)
+    labels = torch.arange(0, 10).repeat(100).to(device)
     generator.eval()
     #         print(f"Before generating images:")
     for i in range(1000):
