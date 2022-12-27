@@ -1,0 +1,1 @@
+FID-torchmetrics: 77.36653900146484

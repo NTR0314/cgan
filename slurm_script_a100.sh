@@ -9,4 +9,4 @@ export LD_LIBRARY_PATH="/home/kit/stud/ufkpt/.conda/envs/cGAN/lib:"$LD_LIBRARY_P
 # pip list >> $DEBUG_PATH
 # which pip >> $DEBUG_PATH
 # which python3 >> $DEBUG_PATH
-python3 /home/kit/stud/ufkpt/NN_pr/train.py -m 'initial2_gpu8' -g &> /home/kit/stud/ufkpt/NN_pr/trainig.log
+python3 /home/kit/stud/ufkpt/NN_pr/train.py -t -m 'initial2_a100' -g &> /home/kit/stud/ufkpt/NN_pr/trainig_a100.log

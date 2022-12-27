@@ -23,7 +23,7 @@ def gen_images(generator, device, nz):
         gen_imgs.append(generator(noise, labels[i].unsqueeze(-1)).squeeze().detach().cpu())
     generator.train()
 
-    print(gen_imgs[0].shape, gen_imgs[0].dtype)
+    # print(gen_imgs[0].shape, gen_imgs[0].dtype)
     return torch.stack(gen_imgs)
 
 

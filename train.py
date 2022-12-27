@@ -417,7 +417,7 @@ if __name__ == '__main__':
     # Calculate Inception score both self-implemented and torchmetrics implementation
     gen_imgs = me.gen_images(netG, device, nz)
 #    inc_score_self = me.inception_score_own(gen_imgs, device, batch_size=32, upscale=True, splits=10)
-#    inc_score_torch = me.inception_score_torchmetrics(gen_imgs)
+    inc_score_torch = me.inception_score_torchmetrics(gen_imgs)
     # Generate real images
     dataloader = torch.utils.data.DataLoader(dataset_test,
                                              batch_size=1,
@@ -456,5 +456,5 @@ if __name__ == '__main__':
     # Save best scores
     with open(model_path / 'final_inception_score.txt', 'w+') as f:
 #        f.write(f"Inception scores self. Mean: {inc_score_self[0]}, std: {inc_score_self[1]}\n")
-#        f.write(f"Inception scores torchmetrics. Mean: {inc_score_torch[0]}, std: {inc_score_torch[1]}\n")
+        f.write(f"Inception scores torchmetrics. Mean: {inc_score_torch[0]}, std: {inc_score_torch[1]}\n")
         f.write(f"FID-torchmetrics: {fid_score_torch}\n")

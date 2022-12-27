@@ -1,2 +1,0 @@
-Inception scores self. Mean: 3.3279412849158367, std: 0.23327355274887326
-Inception scores torch. Mean: 2.876356601715088, std: 0.19798435270786285
