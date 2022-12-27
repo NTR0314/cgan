@@ -1,12 +1,12 @@
 import random
 import numpy as np
 import torch
-import torchmetrics
+from torchmetrics.image.inception import InceptionScore
 from scipy.stats import entropy
 from torch import nn
 from torch.nn import functional as F
 from torchvision.models.inception import inception_v3
-
+from torchmetrics.image.fid import FrechetInceptionDistance
 
 def gen_images(generator, device, nz):
     # Set neccessary seeds for reproducability
@@ -16,15 +16,15 @@ def gen_images(generator, device, nz):
 
     # Generate 1000 images 100 per class as the ex sheet states.
     gen_imgs = []
-    labels = torch.arange(0, 10).repeat(100)
+    labels = torch.arange(0, 10).repeat(100).to(device)
     generator.eval()
-    #         print(f"Before generating images:")
     for i in range(1000):
         noise = torch.randn(1, nz, 1, 1, device=device)
-        gen_imgs.append(generator(noise, labels[i]).squeeze().detach().cpu())
+        gen_imgs.append(generator(noise, labels[i].unsqueeze(-1)).squeeze().detach().cpu())
     generator.train()
 
-    return gen_imgs
+    print(gen_imgs[0].shape, gen_imgs[0].dtype)
+    return torch.stack(gen_imgs)
 
 
 def inception_score_own(imgs, device, cuda=True, batch_size=128, upscale=False, splits=1):
@@ -104,9 +104,24 @@ def inception_score_torchmetrics(imgs):
     :param imgs: Tensor of images -> batch x rgb (3) x height x width
     :return: (mean, std)
     """
-    inception = torchmetrics.image.inception.InceptionScore(normalize=True)
+    inception = InceptionScore(normalize=True)
     # update images
     inception.update(imgs)
 
     # Returns tuple (mean, std)
     return inception.compute()
+
+
+def FID_torchmetrics(imgs, reals):
+    """
+
+    :param imgs: Tensor of images -> batch x rgb (3) x height x width
+    :return: FID scalar tensor
+    """
+    fid = FrechetInceptionDistance(normalize=True)
+    # update images
+    fid.update(imgs, real=False)
+    fid.update(reals, real=True)
+
+    # Returns tuple (mean, std)
+    return fid.compute()

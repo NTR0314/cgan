@@ -22,7 +22,7 @@ from util import metrics as me
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="cGAN for NN PR",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-g", "--gen_images", action="store_false", help="Generate images")
+    parser.add_argument("-g", "--gen_images", action="store_false", help="Don't generate images")
     parser.add_argument("-t", "--training", action="store_true", help="(Continue to) train the model")
     parser.add_argument("-m", "--model_name",
                         help="Model name. If specified the model will be saved to that directory and if"
@@ -416,10 +416,45 @@ if __name__ == '__main__':
 
     # Calculate Inception score both self-implemented and torchmetrics implementation
     gen_imgs = me.gen_images(netG, device, nz)
-    inc_score_self = me.inception_score_own(gen_imgs, device, batch_size=32, upscale=True, splits=10)
-    inc_score_torch = me.inception_score_torchmetrics(gen_imgs)
+#    inc_score_self = me.inception_score_own(gen_imgs, device, batch_size=32, upscale=True, splits=10)
+#    inc_score_torch = me.inception_score_torchmetrics(gen_imgs)
+    # Generate real images
+    dataloader = torch.utils.data.DataLoader(dataset_test,
+                                             batch_size=1,
+                                             num_workers=workers)
+    reals = torch.empty(0)
+#    with open('debug_cifar.txt', 'w+') as f:
+#        for batch in dataloader:
+#            for label in batch['label']:
+#                f.write(str(label))
+#                f.write('\n')
+#
+#    print("finished writing debug")
 
+    # dumm aber ok
+    counter_test_images = [0] * 10
+    for batch in dataloader:
+#        print(batch)
+        feat = batch['feat'] # 1 x 3 x 32 x 32
+#        print(feature_batch.shape)
+        label = batch['label']
+        all_done = False
+        if all_done:
+            break
+        all_done = True
+        for i in range(10):
+            if counter_test_images[i] != 100:
+                all_done = False
+            if label == i and counter_test_images[i] < 100:
+#                print(counter_test_images)
+                counter_test_images[i] += 1
+                reals = torch.cat((reals, feat), 0)
+
+#    print(reals.shape)
+    fid_score_torch = me.FID_torchmetrics(gen_imgs, reals)
+    
     # Save best scores
     with open(model_path / 'final_inception_score.txt', 'w+') as f:
-        f.write(f"Inception scores self. Mean: {inc_score_self[0]}, std: {inc_score_self[1]}")
-        f.write(f"Inception scores self. Mean: {inc_score_torch[0]}, std: {inc_score_torch[1]}")
+#        f.write(f"Inception scores self. Mean: {inc_score_self[0]}, std: {inc_score_self[1]}\n")
+#        f.write(f"Inception scores torchmetrics. Mean: {inc_score_torch[0]}, std: {inc_score_torch[1]}\n")
+        f.write(f"FID-torchmetrics: {fid_score_torch}\n")
