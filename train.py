@@ -120,10 +120,10 @@ if __name__ == '__main__':
 
     # custom weights initialization called on netG and netD
     def weights_init(m):
-        classname = m.__class__.__name__
-        if classname.find('Conv') != -1:
+        print(f"DEBUG: {m}")
+        if type(m) == nn.Conv2d or type(m) == nn.ConvTranspose2d:
             nn.init.normal_(m.weight.data, 0.0, 0.02)
-        elif classname.find('BatchNorm') != -1:
+        elif type(m) == nn.BatchNorm2d:
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
 
@@ -132,7 +132,7 @@ if __name__ == '__main__':
         def __init__(self, in_feat, out_feat):
             super().__init__()
             self.us = nn.Upsample(scale_factor=2)
-            self.c2d = nn.Conv2d(in_feat, out_feat, stride=1, padding=1)
+            self.c2d = nn.Conv2d(in_feat, out_feat, kernel_size = 3, stride=1, padding=1)
 
         def forward(self, x):
             return self.c2d(self.us(x))
@@ -398,8 +398,8 @@ if __name__ == '__main__':
                 no_improve_count = 0
             else:
                 no_improve_count += 1
-            # Stop if not improvement after 10 epochs
-            if no_improve_count >= 10:
+            # Stop if not improvement after 15 epochs
+            if no_improve_count >= 15:
                 print("No improvements for 10 epochs. Breaking train loop")
                 break
 
