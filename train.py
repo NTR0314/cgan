@@ -128,34 +128,50 @@ if __name__ == '__main__':
             nn.init.constant_(m.bias.data, 0)
 
 
+    class UpsampleConv(nn.Module):
+        def __init__(self, in_feat, out_feat):
+            super().__init__()
+            self.us = nn.Upsample(scale_factor=2)
+            self.c2d = nn.Conv2d(in_feat, out_feat, stride=1, padding=1)
+
+        def forward(self, x):
+            return self.c2d(self.us(x))
+
+
+
     class Generator(nn.Module):
         def __init__(self, nz, ngf, nc):
             super(Generator, self).__init__()
             self.label_upscale = nn.Sequential(
-                nn.ConvTranspose2d(10, ngf * 8, 4, 1, 0, bias=False),
-                nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
+                # nn.ConvTranspose2d(10, ngf * 8, 4, 1, 0, bias=False),
+                UpsampleConv(10, ngf * 8), # TODO try 10 instead of ngf * 8
+                # nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
                 nn.ReLU(True)
             )
             self.img_upscale = nn.Sequential(
                 # input is Z, going into a convolution
                 # This is supposed to be used as an improvement over Convolution + Upsamling
                 #  convTranspose2d args: c_in, c_out, kernel_size, stride, padding
-                nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
-                nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
+                # nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
+                UpsampleConv(nz, ngf * 8),
+                # nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
                 nn.ReLU(True)
             )
 
             self.main = nn.Sequential(
                 # state size. (ngf*8) x 4 x 4
-                nn.ConvTranspose2d(ngf * 8 * 2, ngf * 4, 4, 2, 1, bias=False),
+                # nn.ConvTranspose2d(ngf * 8 * 2, ngf * 4, 4, 2, 1, bias=False),
+                UpsampleConv(ngf * 8 * 2, ngf * 4),
                 nn.BatchNorm2d(ngf * 4),
                 nn.ReLU(True),
                 # state size. (ngf*4) x 8 x 8
-                nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
-                nn.BatchNorm2d(ngf * 2),
+                # nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+                UpsampleConv(ngf * 4, ngf * 2),
+                # nn.BatchNorm2d(ngf * 2),
                 nn.ReLU(True),
                 # state size. (ngf*2) x 16 x 16
-                nn.ConvTranspose2d(ngf * 2, nc, 4, 2, 1, bias=False),
+                # nn.ConvTranspose2d(ngf * 2, nc, 4, 2, 1, bias=False),
+                UpsampleConv(ngf * 2, nc),
                 nn.Tanh()
                 # state size. (nc) x 32 x 32
             )
