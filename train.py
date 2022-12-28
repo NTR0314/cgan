@@ -200,18 +200,21 @@ if __name__ == '__main__':
             self.ds_img = nn.Sequential(
                 nn.Conv2d(nc, ngf * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ngf * 2),
-                nn.LeakyReLU(0.2, inplace=True)
+                # nn.LeakyReLU(0.2, inplace=True)
+                nn.ReLU()
             )
 
             self.main = nn.Sequential(
                 # state size. (ndf) x 16 x 16
                 nn.Conv2d(ngf * 2 + 1, ngf * 4, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ngf * 4),
-                nn.LeakyReLU(0.2, inplace=True),
+                # nn.LeakyReLU(0.2, inplace=True),
+                nn.ReLU(),
                 # state size. (ndf*2) x 8 x 8
                 nn.Conv2d(ngf * 4, ngf * 8, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ngf * 8),
-                nn.LeakyReLU(0.2, inplace=True),
+                # nn.LeakyReLU(0.2, inplace=True),
+                nn.ReLU(),
                 # state size. (ndf*8) x 4 x 4
                 # conv2d args: c_in, c_out, kernel_size, stride, padding
                 nn.Conv2d(ngf * 8, 1, 4, 1, 0, bias=False),
