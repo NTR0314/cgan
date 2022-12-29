@@ -212,7 +212,7 @@ if __name__ == '__main__':
             super(Discriminator, self).__init__()
             # 10 x 1 x 1 -> 1 x 16 x 16
             #self.label_conv = nn.ConvTranspose2d(10, 1, 16, 1)
-            self.label_conv = UpsampleConv(10, 1, scale_factor=16), # TODO try 10 instead of ngf * 8
+            self.label_conv = UpsampleConv(10, 1, scale_factor=16) # TODO try 10 instead of ngf * 8
             # nc x 32 x 32 -> 2ndf x 16 x 16
             self.ds_img = nn.Sequential(
                 nn.Conv2d(nc, ngf * 2, 4, 2, 1, bias=False),
