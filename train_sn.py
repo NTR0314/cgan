@@ -129,10 +129,12 @@ if __name__ == '__main__':
 
 
     class UpsampleConv(nn.Module):
-        def __init__(self, in_feat, out_feat, scale_factor=2):
+        def __init__(self, in_feat, out_feat, scale_factor=2, sn=False):
             super().__init__()
             self.us = nn.Upsample(scale_factor=scale_factor)
             self.c2d = nn.Conv2d(in_feat, out_feat, kernel_size = 3, stride=1, padding=1)
+            if sn:
+                self.c2d = nn.utils.spectral_norm(self.c2d)
 
         def forward(self, x):
             return self.c2d(self.us(x))
@@ -162,7 +164,7 @@ if __name__ == '__main__':
                 # state size. (ngf*8) x 4 x 4
                 # nn.ConvTranspose2d(ngf * 8 * 2, ngf * 4, 4, 2, 1, bias=False),
                 UpsampleConv(ngf * 8 + 10, ngf * 4),
-#                nn.BatchNorm2d(ngf * 4),
+                nn.BatchNorm2d(ngf * 4),
                 nn.ReLU(True),
                 # state size. (ngf*4) x 8 x 8
                 # nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
@@ -212,10 +214,10 @@ if __name__ == '__main__':
             super(Discriminator, self).__init__()
             # 10 x 1 x 1 -> 1 x 16 x 16
             #self.label_conv = nn.ConvTranspose2d(10, 1, 16, 1)
-            self.label_conv = UpsampleConv(10, 1, scale_factor=16) # TODO try 10 instead of ngf * 8
+            self.label_conv = UpsampleConv(10, 1, scale_factor=16, sn=True) # TODO try 10 instead of ngf * 8
             # nc x 32 x 32 -> 2ndf x 16 x 16
             self.ds_img = nn.Sequential(
-                nn.Conv2d(nc, ngf * 2, 4, 2, 1, bias=False),
+                nn.utils.spectral_norm(nn.Conv2d(nc, ngf * 2, 4, 2, 1, bias=False)),
 #               nn.BatchNorm2d(ngf * 2),
                 # nn.LeakyReLU(0.2, inplace=True)
                 nn.ReLU()
@@ -223,18 +225,18 @@ if __name__ == '__main__':
 
             self.main = nn.Sequential(
                 # state size. (ndf) x 16 x 16
-                nn.Conv2d(ngf * 2 + 1, ngf * 4, 4, 2, 1, bias=False),
+                nn.utils.spectral_norm(nn.Conv2d(ngf * 2 + 1, ngf * 4, 4, 2, 1, bias=False)),
 #                nn.BatchNorm2d(ngf * 4),
                 # nn.LeakyReLU(0.2, inplace=True),
                 nn.ReLU(),
                 # state size. (ndf*2) x 8 x 8
-                nn.Conv2d(ngf * 4, ngf * 8, 4, 2, 1, bias=False),
+                nn.utils.spectral_norm(nn.Conv2d(ngf * 4, ngf * 8, 4, 2, 1, bias=False)),
 #                nn.BatchNorm2d(ngf * 8),
                 # nn.LeakyReLU(0.2, inplace=True),
                 nn.ReLU(),
                 # state size. (ndf*8) x 4 x 4
                 # conv2d args: c_in, c_out, kernel_size, stride, padding
-                nn.Conv2d(ngf * 8, 1, 4, 1, 0, bias=False),
+                nn.utils.spectral_norm(nn.Conv2d(ngf * 8, 1, 4, 1, 0, bias=False)),
                 nn.Sigmoid()
             )
 
