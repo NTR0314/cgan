@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
     # custom weights initialization called on netG and netD
     def weights_init(m):
-        print(f"DEBUG: {m}")
+#        print(f"DEBUG: {m}")
         if type(m) == nn.Conv2d or type(m) == nn.ConvTranspose2d:
             nn.init.normal_(m.weight.data, 0.0, 0.02)
         elif type(m) == nn.BatchNorm2d:
@@ -129,9 +129,9 @@ if __name__ == '__main__':
 
 
     class UpsampleConv(nn.Module):
-        def __init__(self, in_feat, out_feat):
+        def __init__(self, in_feat, out_feat, scale_factor=2):
             super().__init__()
-            self.us = nn.Upsample(scale_factor=2)
+            self.us = nn.Upsample(scale_factor=scale_factor)
             self.c2d = nn.Conv2d(in_feat, out_feat, kernel_size = 3, stride=1, padding=1)
 
         def forward(self, x):
@@ -144,7 +144,7 @@ if __name__ == '__main__':
             super(Generator, self).__init__()
             self.label_upscale = nn.Sequential(
                 # nn.ConvTranspose2d(10, ngf * 8, 4, 1, 0, bias=False),
-                UpsampleConv(10, ngf * 8), # TODO try 10 instead of ngf * 8
+                UpsampleConv(10, 10, scale_factor=4), # TODO try 10 instead of ngf * 8
                 # nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
                 nn.ReLU(True)
             )
@@ -153,7 +153,7 @@ if __name__ == '__main__':
                 # This is supposed to be used as an improvement over Convolution + Upsamling
                 #  convTranspose2d args: c_in, c_out, kernel_size, stride, padding
                 # nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
-                UpsampleConv(nz, ngf * 8),
+                UpsampleConv(nz, ngf * 8, scale_factor=4),
                 # nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
                 nn.ReLU(True)
             )
@@ -161,7 +161,7 @@ if __name__ == '__main__':
             self.main = nn.Sequential(
                 # state size. (ngf*8) x 4 x 4
                 # nn.ConvTranspose2d(ngf * 8 * 2, ngf * 4, 4, 2, 1, bias=False),
-                UpsampleConv(ngf * 8 * 2, ngf * 4),
+                UpsampleConv(ngf * 8 + 10, ngf * 4),
                 nn.BatchNorm2d(ngf * 4),
                 nn.ReLU(True),
                 # state size. (ngf*4) x 8 x 8
@@ -211,11 +211,12 @@ if __name__ == '__main__':
         def __init__(self, nz, ngf, nc):
             super(Discriminator, self).__init__()
             # 10 x 1 x 1 -> 1 x 16 x 16
-            self.label_conv = nn.ConvTranspose2d(10, 1, 16, 1)
+            #self.label_conv = nn.ConvTranspose2d(10, 1, 16, 1)
+            self.label_conv = UpsampleConv(10, 1, scale_factor=16), # TODO try 10 instead of ngf * 8
             # nc x 32 x 32 -> 2ndf x 16 x 16
             self.ds_img = nn.Sequential(
                 nn.Conv2d(nc, ngf * 2, 4, 2, 1, bias=False),
-                nn.BatchNorm2d(ngf * 2),
+#               nn.BatchNorm2d(ngf * 2),
                 # nn.LeakyReLU(0.2, inplace=True)
                 nn.ReLU()
             )
@@ -238,6 +239,7 @@ if __name__ == '__main__':
             )
 
         def forward(self, input_image, label: torch.Tensor):
+            #print(f"input image shape {input_image.shape}")
             # One hot of labels \in [0, 9]
             one_hot_label = F.one_hot(label.long(), num_classes=10).float()
             # reshape b x 10 -> b x 10 x 1 x 1
@@ -247,7 +249,8 @@ if __name__ == '__main__':
             # Concatenate upscaled labels and downscaled img.
             downscaled_image = self.ds_img(input_image)
             # Cat, dim: batch x C x 16 x 16
-            concated = torch.cat((downscaled_image, label_upscaled), dim=1)
+            #print(downscaled_image.shape, label_upscaled.shape)
+            concated = torch.cat((downscaled_image, label_upscaled), dim=1) #TODO error lies here.
 
             return self.main(concated)
 
