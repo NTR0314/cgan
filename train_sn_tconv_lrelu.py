@@ -127,6 +127,7 @@ if __name__ == '__main__':
     parser.add_argument("--ngf", help="ngf dim", type=int, default=64)
     args = parser.parse_args()
     model_path = Path(f"models/{args.model_name}/")
+    os.makedirs(model_path, exist_ok=True)
     # Root directory for dataset
     workers = 2
     batch_size = 128
