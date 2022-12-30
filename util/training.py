@@ -11,7 +11,7 @@ import torch.utils.data
 import torchvision.utils as vutils
 from torch import nn
 
-import metrics as me
+from . import metrics as me
 
 def weights_init(m):
     # custom weights initialization called on netG and netD

@@ -47,7 +47,7 @@ class Generator(nn.Module):
             # state size. (ngf*8) x 4 x 4
             # nn.ConvTranspose2d(ngf * 8 * 2, ngf * 4, 4, 2, 1, bias=False),
             UpsampleConv(ngf * 8 + 10, ngf * 4),
-            nn.BatchNorm2d(ngf * 4),
+            # nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
             # state size. (ngf*4) x 8 x 8
             # nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
@@ -146,8 +146,8 @@ if __name__ == '__main__':
     ngf = args.ngf
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(nz, ngf, nc)
-    netD = Discriminator(nz, ngf, nc)
+    netG = Generator(nz, ngf, nc).to(device)
+    netD = Discriminator(nz, ngf, nc).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
