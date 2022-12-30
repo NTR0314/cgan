@@ -136,7 +136,7 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
         is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
         inc_scores.append((is_mean, is_std))
         # Calc FID for dev set
-        reals = torch.stack([image for image in dataset_dev])
+        reals = torch.stack([data['feat'] for data in dataset_dev])
         fid_dev = me.FID_torchmetrics(gen_imgs, reals)
         fid_scores.append(fid_dev)
         # Calc FID score for each class
