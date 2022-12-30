@@ -43,7 +43,7 @@ class Generator(nn.Module):
 
         self.main = nn.Sequential(
             # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(ngf * 8 * 2, ngf * 4, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(ngf * 8 + 10, ngf * 4, 4, 2, 1, bias=False),
             # nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
             # state size. (ngf*4) x 8 x 8
