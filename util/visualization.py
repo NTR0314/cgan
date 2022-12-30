@@ -1,10 +1,12 @@
+import os
+
 from matplotlib import pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
 import torchvision.utils as vutils
 
 
-def gen_plots(img_list, G_losses, D_losses, base_path):
+def gen_plots(img_list, G_losses, D_losses, base_path, model_name=""):
     # Generate Animation of training progress
     fig = plt.figure(figsize=(8, 8))
     plt.axis("off")
@@ -15,11 +17,11 @@ def gen_plots(img_list, G_losses, D_losses, base_path):
 
     # Plot losses
     plt.figure(figsize=(10, 5))
-    plt.title("Generator and Discriminator Loss During Training")
+    plt.title(f"Generator and Discriminator Loss During Training ({model_name})")
     plt.plot(G_losses, label="G")
     plt.plot(D_losses, label="D")
     plt.xlabel("iterations")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig(base_path / 'losses.png')
+    plt.savefig(base_path / 'losses.svg')
 

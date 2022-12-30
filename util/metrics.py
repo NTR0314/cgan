@@ -26,6 +26,21 @@ def gen_images(generator, device, nz):
     # print(gen_imgs[0].shape, gen_imgs[0].dtype)
     return torch.stack(gen_imgs)
 
+def gen_images_class(generator, device, nz, num_imgs, class_id):
+    np.random.seed(1337)
+    torch.manual_seed(1337)
+    random.seed(1337)
+
+    gen_imgs = []
+    labels = torch.tensor(class_id).repeat(num_imgs).to(device)
+    generator.eval()
+    for i in range(num_imgs):
+        noise = torch.randn(1, nz, 1, 1, device=device)
+        gen_imgs.append(generator(noise, labels[i].unsqueeze(-1)).squeeze().detach().cpu())
+    generator.train()
+
+    return torch.stack(gen_imgs)
+
 
 def inception_score_own(imgs, device, cuda=True, batch_size=128, upscale=False, splits=1):
     # Evaluate model
@@ -125,3 +140,5 @@ def FID_torchmetrics(imgs, reals):
 
     # Returns tuple (mean, std)
     return fid.compute()
+
+
