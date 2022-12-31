@@ -29,7 +29,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.label_upscale = nn.Sequential(
             # nn.ConvTranspose2d(10, ngf * 8, 4, 1, 0, bias=False),
-            UpsampleConv(10, 10, scale_factor=4),  # TODO try 10 instead of ngf * 8
+            UpsampleConv(10, 10, scale_factor=4),
             # nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
             nn.ReLU(True)
         )
@@ -135,6 +135,7 @@ if __name__ == '__main__':
     parser.add_argument("--ngf", help="ngf dim", type=int, default=64)
     args = parser.parse_args()
     model_path = Path(f"models/{args.model_name}/")
+    os.makedirs(model_path, exist_ok=True)
     # Root directory for dataset
     workers = 2
     batch_size = 128
@@ -207,7 +208,7 @@ if __name__ == '__main__':
             netD.load_state_dict(torch.load(best_cp_d_path))
             netG.load_state_dict(torch.load(best_cp_g_path))
 
-        reals = [x for x in dataset_test]
+        reals = torch.stack([data['feat'] for data in dataset_dev])
         gen_imgs = me.gen_images(netG, device, nz)
         test_fid = me.FID_torchmetrics(gen_imgs,reals)
         test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
