@@ -203,7 +203,7 @@ if __name__ == '__main__':
             netD.load_state_dict(torch.load(best_cp_d_path))
             netG.load_state_dict(torch.load(best_cp_g_path))
 
-        reals = [x for x in dataset_test]
+        reals = torch.stack([data['feat'] for data in dataset_dev])
         gen_imgs = me.gen_images(netG, device, nz)
         test_fid = me.FID_torchmetrics(gen_imgs,reals)
         test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
