@@ -27,10 +27,8 @@ class UpsampleConv(nn.Module):
 class Generator(nn.Module):
     def __init__(self, nz, ngf, nc):
         super(Generator, self).__init__()
+        self.emb = nn.Linear(10, 128)
         self.label_upscale = nn.Sequential(
-            # nn.ConvTranspose2d(10, ngf * 8, 4, 1, 0, bias=False),
-            # Embedding layer for labels
-            nn.Linear(10, 128),
             UpsampleConv(128, 128, scale_factor=4),
             # nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
             nn.ReLU(True)
@@ -48,7 +46,7 @@ class Generator(nn.Module):
         self.main = nn.Sequential(
             # state size. (ngf*8) x 4 x 4
             # nn.ConvTranspose2d(ngf * 8 * 2, ngf * 4, 4, 2, 1, bias=False),
-            UpsampleConv(ngf * 8 + 10, ngf * 4),
+            UpsampleConv(ngf * 8 + 128, ngf * 4),
             # nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
             # state size. (ngf*4) x 8 x 8
@@ -64,7 +62,9 @@ class Generator(nn.Module):
         )
 
     def forward(self, input_image, input_label):
+        # b x 1 -> b x 10
         one_hot_label = F.one_hot(input_label.long(), num_classes=10).float()
+        one_hot_label = self.emb(one_hot_label)
         # b x 10 -> b x 10 x 1 x 1
         one_hot_label = one_hot_label.unsqueeze(-1).unsqueeze(-1)
 
