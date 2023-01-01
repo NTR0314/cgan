@@ -24,9 +24,8 @@ class UpsampleConv(nn.Module):
         return self.c2d(self.us(x))
 
 
-
 class GeneratorBlock(nn.Module):
-    def __init__(self, ngf, bn = True, tconv = True, residual = False):
+    def __init__(self, ngf, bn=True, tconv=True, residual=False):
         super().__init__()
         self.bn = bn
         self.tconv = tconv
@@ -37,8 +36,8 @@ class GeneratorBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(ngf)
         self.bn2 = nn.BatchNorm2d(ngf)
 
-        self.c1 = nn.Conv2d(ngf, ngf, kernel_size = 3, padding=1)
-        self.c2 = nn.Conv2d(ngf, ngf, kernel_size = 3, padding=1)
+        self.c1 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
+        self.c2 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
 
     def forward(self, x):
         orig = x
@@ -53,16 +52,16 @@ class GeneratorBlock(nn.Module):
             x = self.bn2(x)
         x = nn.ReLU()(x)
         x = self.c2(x)
+        # TODO fix residual
         if self.residual:
             return x + orig
         return x
 
 
-
-
 class Generator(nn.Module):
-    def __init__(self, nz = 100, ngf = 256, nc = 3):
+    def __init__(self, nz=100, ngf=128, nc=3):
         super(Generator, self).__init__()
+        self.ngf = ngf
         self.linear = nn.Linear(nz + 10, 4 ** 2 * ngf)
 
         self.gb1 = GeneratorBlock(ngf)
@@ -71,7 +70,6 @@ class Generator(nn.Module):
 
         self.bn1 = nn.BatchNorm2d(ngf)
         self.c1 = nn.Conv2d(ngf, nc, kernel_size=1, padding=0)
-
 
     def forward(self, input_image, input_label):
         input_label = input_label.to(torch.int64)
@@ -84,7 +82,7 @@ class Generator(nn.Module):
         # B x nz + 10
         x = self.linear(x)
         # B x ngf * 4 * 4
-        x = torch.reshape(x, (-1, ngf, 4, 4))
+        x = torch.reshape(x, (-1, self.ngf, 4, 4))
         # B x ngf x 4 x 4
         x = self.gb1(x)
         x = self.gb2(x)
@@ -92,53 +90,79 @@ class Generator(nn.Module):
         x = self.bn1(x)
         x = nn.ReLU()(x)
         x = self.c1(x)
+        x = nn.Tanh(x)
+
+        return x
+
+
+class DiscriminatorBlock(nn.Module):
+    def __init__(self, in_ch, out_ch, lrelu=False, suppres_first_relu=False, down_sample=True, sn=True):
+        super().__init__()
+        self.in_ch = in_ch
+        self.out_ch = out_ch
+        self.ds = down_sample
+        self.lrelu = lrelu
+        self.suppres_first_relu = suppres_first_relu
+        self.c1 = nn.Conv2d(in_ch, out_ch, 3, 1, 1)
+        self.c2 = nn.Conv2d(out_ch, out_ch, 3, 1, 1)
+        if sn:
+            self.c1 = nn.utils.spectral_norm(self.c1)
+            self.c2 = nn.utils.spectral_norm(self.c2)
+
+    def forward(self, x):
+        if not self.suppres_first_relu:
+            if self.lrelu:
+                x = nn.LeakyReLU()(x)
+            else:
+                x = nn.ReLU()(x)
+
+        x = self.c1(x)
+
+        if self.lrelu:
+            x = nn.LeakyReLU()(x)
+        else:
+            x = nn.ReLU()(x)
+        x = self.c2(x)
+        if self.ds:
+            x = nn.AvgPool2d(kernel_size=2)(x)
 
         return x
 
 
 class Discriminator(nn.Module):
-    def __init__(self, nz, ngf, nc):
+    def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10):
         super(Discriminator, self).__init__()
-        # 10 x 1 x 1 -> 1 x 16 x 16
-        # self.label_conv = nn.ConvTranspose2d(10, 1, 16, 1)
-        self.label_conv = UpsampleConv(10, 1, scale_factor=16, sn=True)  # TODO try 10 instead of ngf * 8
-        # nc x 32 x 32 -> 2ndf x 16 x 16
-        self.ds_img = nn.Sequential(
-            nn.utils.spectral_norm(nn.Conv2d(nc, ngf * 2, 4, 2, 1, bias=False)),
-            # nn.BatchNorm2d(ngf * 2),
-            nn.LeakyReLU(0.2, inplace=True)
-        )
 
-        self.main = nn.Sequential(
-            # state size. (ndf) x 16 x 16
-            nn.utils.spectral_norm(nn.Conv2d(ngf * 2 + 1, ngf * 4, 4, 2, 1, bias=False)),
-            #                nn.BatchNorm2d(ngf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 8 x 8
-            nn.utils.spectral_norm(nn.Conv2d(ngf * 4, ngf * 8, 4, 2, 1, bias=False)),
-            #                nn.BatchNorm2d(ngf * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            # conv2d args: c_in, c_out, kernel_size, stride, padding
-            nn.utils.spectral_norm(nn.Conv2d(ngf * 8, 1, 4, 1, 0, bias=False)),
-            nn.Sigmoid()
-        )
+        self.sn = sn
+        self.num_classes = num_classes
+        self.d1 = DiscriminatorBlock(nc, ndf, suppres_first_relu=True, down_sample=True, lrelu=lrelu, sn=sn)
+        self.d2 = DiscriminatorBlock(ndf, ndf, down_sample=True, lrelu=lrelu, sn=sn)
+        self.d3 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn)
+        self.d4 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn)
 
-    def forward(self, input_image, label: torch.Tensor):
-        # print(f"input image shape {input_image.shape}")
+        self.emb = nn.Linear(num_classes, ndf)
+        if self.sn:
+            self.emb = nn.utils.spectral_norm(self.emb)
+        self.ll = nn.Linear(ndf, 1)
+        if self.sn:
+            self.ll = nn.utils.spectral_norm(self.ll)
+
+    def forward(self, x, y: torch.Tensor):
         # One hot of labels \in [0, 9]
-        one_hot_label = F.one_hot(label.long(), num_classes=10).float()
-        # reshape b x 10 -> b x 10 x 1 x 1
-        one_hot_label = one_hot_label.unsqueeze(-1).unsqueeze(-1)
-        # Scale labels to same as image after first conv layer like: https://www.researchgate.net/publication/331915834_Designing_nanophotonic_structures_using_conditional-deep_convolutional_generative_adversarial_networks
-        label_upscaled = self.label_conv(one_hot_label)
-        # Concatenate upscaled labels and downscaled img.
-        downscaled_image = self.ds_img(input_image)
-        # Cat, dim: batch x C x 16 x 16
-        # print(downscaled_image.shape, label_upscaled.shape)
-        concated = torch.cat((downscaled_image, label_upscaled), dim=1)  # TODO error lies here.
+        oh = F.one_hot(y.long(), num_classes=self.num_classes).float()
 
-        return self.main(concated)
+        x = self.d1(x)
+        x = self.d2(x)
+        x = self.d3(x)
+        x = self.d4(x)  # b x ndf x 8 x 8
+        x = torch.sum(x, (2, 3))  # b x ndf
+
+#        print(oh.shape)
+#        print(self.emb(oh).shape)
+        proj = torch.sum(self.emb(oh) * x, 1, keepdim=True)  # b x 1
+        lin = self.ll(x)
+
+        return proj + lin
 
 
 if __name__ == '__main__':
@@ -166,8 +190,8 @@ if __name__ == '__main__':
     ngf = args.ngf
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(nz, ngf, nc).to(device)
-    netD = Discriminator(nz, ngf, nc).to(device)
+    netG = Generator().to(device)
+    netD = Discriminator().to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
