@@ -142,7 +142,7 @@ if __name__ == '__main__':
     lr = 0.0002
     beta1 = 0.5
     # Create the generator
-    nz = 100 + 10  # 100 latent noise space dz + 10 dims of one-hot encoded label
+    nz = 100
     nc = 3  # 3 channels rgb
     ngf = args.ngf
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

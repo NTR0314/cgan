@@ -24,49 +24,76 @@ class UpsampleConv(nn.Module):
         return self.c2d(self.us(x))
 
 
-class Generator(nn.Module):
-    def __init__(self, nz, ngf, nc):
-        super(Generator, self).__init__()
-        self.label_upscale = nn.Sequential(
-            nn.ConvTranspose2d(10, 10, 4, 1, 0, bias=False),
-            # nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
-            nn.ReLU(True)
-        )
-        self.img_upscale = nn.Sequential(
-            # input is Z, going into a convolution
-            # This is supposed to be used as an improvement over Convolution + Upsamling
-            #  convTranspose2d args: c_in, c_out, kernel_size, stride, padding
-            nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
-            # nn.BatchNorm2d(ngf * 8),  # Maybe this can also be reported as an improvement
-            nn.ReLU(True)
-        )
 
-        self.main = nn.Sequential(
-            # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(ngf * 8 + 10, ngf * 4, 4, 2, 1, bias=False),
-            # nn.BatchNorm2d(ngf * 4),
-            nn.ReLU(True),
-            # state size. (ngf*4) x 8 x 8
-            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
-            # nn.BatchNorm2d(ngf * 2),
-            nn.ReLU(True),
-            # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d(ngf * 2, nc, 4, 2, 1, bias=False),
-            nn.Tanh()
-            # state size. (nc) x 32 x 32
-        )
+class GeneratorBlock(nn.Module):
+    def __init__(self, ngf, bn = True, tconv = True, residual = False):
+        super().__init__()
+        self.bn = bn
+        self.tconv = tconv
+        self.residual = residual
+
+        self.tconv1 = nn.ConvTranspose2d(ngf, ngf, 4, 2, 1)
+
+        self.bn1 = nn.BatchNorm2d(ngf)
+        self.bn2 = nn.BatchNorm2d(ngf)
+
+        self.c1 = nn.Conv2d(ngf, ngf, kernel_size = 3, padding=1)
+        self.c2 = nn.Conv2d(ngf, ngf, kernel_size = 3, padding=1)
+
+    def forward(self, x):
+        orig = x
+        if self.bn:
+            x = self.bn1(x)
+        x = nn.ReLU()(x)
+        if self.tconv:
+            x = self.tconv1(x)
+        else:
+            x = self.c1(nn.Upsample(scale_factor=2)(x))
+        if self.bn:
+            x = self.bn2(x)
+        x = nn.ReLU()(x)
+        x = self.c2(x)
+        if self.residual:
+            return x + orig
+        return x
+
+
+
+
+class Generator(nn.Module):
+    def __init__(self, nz = 100, ngf = 256, nc = 3):
+        super(Generator, self).__init__()
+        self.linear = nn.Linear(nz + 10, 4 ** 2 * ngf)
+
+        self.gb1 = GeneratorBlock(ngf)
+        self.gb2 = GeneratorBlock(ngf)
+        self.gb3 = GeneratorBlock(ngf)
+
+        self.bn1 = nn.BatchNorm2d(ngf)
+        self.c1 = nn.Conv2d(ngf, nc, kernel_size=1, padding=0)
+
 
     def forward(self, input_image, input_label):
-        one_hot_label = F.one_hot(input_label.long(), num_classes=10).float()
-        # b x 10 -> b x 10 x 1 x 1
-        one_hot_label = one_hot_label.unsqueeze(-1).unsqueeze(-1)
+        input_label = input_label.to(torch.int64)
+        print(input_image.shape, input_label.shape, input_label.dtype)
+        input_image = input_image.squeeze()
+        input_label = F.one_hot(input_label)
+        print(input_image.shape, input_label.shape, input_label.dtype)
+        x = torch.cat((input_image, input_label), dim=1)
+        print(x.shape)
+        # B x nz + 10
+        x = self.linear(x)
+        # B x ngf * 4 * 4
+        x = torch.reshape(x, (-1, ngf, 4, 4))
+        # B x ngf x 4 x 4
+        x = self.gb1(x)
+        x = self.gb2(x)
+        x = self.gb3(x)
+        x = self.bn1(x)
+        x = nn.ReLU()(x)
+        x = self.c1(x)
 
-        lbl_4 = self.label_upscale(one_hot_label)
-        inp_img_4 = self.img_upscale(input_image)
-        # Cat | dim: N x C x 4 x 4
-        catvec = torch.cat((inp_img_4, lbl_4), dim=1)
-
-        return self.main(catvec)
+        return x
 
 
 class Discriminator(nn.Module):
@@ -78,22 +105,19 @@ class Discriminator(nn.Module):
         # nc x 32 x 32 -> 2ndf x 16 x 16
         self.ds_img = nn.Sequential(
             nn.utils.spectral_norm(nn.Conv2d(nc, ngf * 2, 4, 2, 1, bias=False)),
-            #               nn.BatchNorm2d(ngf * 2),
-            # nn.LeakyReLU(0.2, inplace=True)
-            nn.ReLU()
+            # nn.BatchNorm2d(ngf * 2),
+            nn.LeakyReLU(0.2, inplace=True)
         )
 
         self.main = nn.Sequential(
             # state size. (ndf) x 16 x 16
             nn.utils.spectral_norm(nn.Conv2d(ngf * 2 + 1, ngf * 4, 4, 2, 1, bias=False)),
             #                nn.BatchNorm2d(ngf * 4),
-            # nn.LeakyReLU(0.2, inplace=True),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*2) x 8 x 8
             nn.utils.spectral_norm(nn.Conv2d(ngf * 4, ngf * 8, 4, 2, 1, bias=False)),
             #                nn.BatchNorm2d(ngf * 8),
-            # nn.LeakyReLU(0.2, inplace=True),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
             # conv2d args: c_in, c_out, kernel_size, stride, padding
             nn.utils.spectral_norm(nn.Conv2d(ngf * 8, 1, 4, 1, 0, bias=False)),
@@ -185,9 +209,9 @@ if __name__ == '__main__':
 
     if args.training:
         util.training.train_model(model_path, 100, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train,
-                                  dataset_dev, device, img_list, G_losses, D_losses, inc_scores, fid_scores, fid_scores_classes,
+                                  dataset_dev, device, img_list, G_losses, D_losses, inc_scores, fid_scores,
+                                  fid_scores_classes,
                                   best_epoch, start_epoch, no_improve_count)
-
 
     # Generate images if flag is set.
     if args.gen_images:
@@ -205,7 +229,7 @@ if __name__ == '__main__':
 
         reals = torch.stack([data['feat'] for data in dataset_dev])
         gen_imgs = me.gen_images(netG, device, nz)
-        test_fid = me.FID_torchmetrics(gen_imgs,reals)
+        test_fid = me.FID_torchmetrics(gen_imgs, reals)
         test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
 
         # Save best scores
