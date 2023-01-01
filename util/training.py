@@ -96,6 +96,7 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
             # Classify all fake batch with D
             output = netD(fake.detach(), real_img_labels).view(-1)
             # Calculate D's loss on the all-fake batch
+            print(output, label)
             errD_fake = criterion(output, label)
             # Calculate the gradients for this batch, accumulated (summed) with previous gradients
             errD_fake.backward()
