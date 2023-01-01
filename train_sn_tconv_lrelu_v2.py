@@ -90,7 +90,7 @@ class Generator(nn.Module):
         x = self.bn1(x)
         x = nn.ReLU()(x)
         x = self.c1(x)
-        x = nn.Tanh(x)
+        x = nn.Tanh()(x)
 
         return x
 
@@ -162,7 +162,7 @@ class Discriminator(nn.Module):
         proj = torch.sum(self.emb(oh) * x, 1, keepdim=True)  # b x 1
         lin = self.ll(x)
 
-        return proj + lin
+        return nn.Sigmoid()(proj + lin)
 
 
 if __name__ == '__main__':
