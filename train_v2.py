@@ -75,7 +75,7 @@ class Generator(nn.Module):
         input_label = input_label.to(torch.int64)
 #        print(input_image.shape, input_label.shape, input_label.dtype)
         input_image = input_image.squeeze(dim=2).squeeze(dim=2)
-        input_label = F.one_hot(input_label)
+        input_label = F.one_hot(input_label, num_classes=10)
 #        print(input_image.shape, input_label.shape, input_label.dtype)
         x = torch.cat((input_image, input_label), dim=1)
         print(x.shape)
