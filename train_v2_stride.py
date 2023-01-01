@@ -73,12 +73,12 @@ class Generator(nn.Module):
 
     def forward(self, input_image, input_label):
         input_label = input_label.to(torch.int64)
-#        print(input_image.shape, input_label.shape, input_label.dtype)
+        # print(input_image.shape, input_label.shape, input_label.dtype)
         input_image = input_image.squeeze(dim=2).squeeze(dim=2)
-        input_label = F.one_hot(input_label)
-#        print(input_image.shape, input_label.shape, input_label.dtype)
+        input_label = F.one_hot(input_label, num_classes=10)
+        # print(input_image.shape, input_label.shape, input_label.dtype)
         x = torch.cat((input_image, input_label), dim=1)
-        print(x.shape)
+        # print(x.shape)
         # B x nz + 10
         x = self.linear(x)
         # B x ngf * 4 * 4
@@ -104,7 +104,7 @@ class DiscriminatorBlock(nn.Module):
         self.lrelu = lrelu
         self.suppres_first_relu = suppres_first_relu
         self.c1 = nn.Conv2d(in_ch, out_ch, 3, 1, 1)
-        self.c2 = nn.Conv2d(out_ch, out_ch, 3, 1, 1)
+        self.c2 = nn.Conv2d(out_ch, out_ch, 3, stride=1, padding=1)
         if sn:
             self.c1 = nn.utils.spectral_norm(self.c1)
             self.c2 = nn.utils.spectral_norm(self.c2)
@@ -123,8 +123,6 @@ class DiscriminatorBlock(nn.Module):
         else:
             x = nn.ReLU()(x)
         x = self.c2(x)
-        if self.ds:
-            x = nn.AvgPool2d(kernel_size=2)(x)
 
         return x
 
