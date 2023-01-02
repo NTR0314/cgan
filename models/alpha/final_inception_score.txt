@@ -1,2 +1,0 @@
-Inception scores torchmetrics. Mean: 2.009755849838257, std: 0.09389795362949371
-FID-torchmetrics: 245.6670379638672

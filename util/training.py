@@ -150,7 +150,7 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
                 fid_scores_classes[class_i].append(fid_i)
 
         # Save best pt, compare mean.
-        if fid_dev >= max(fid_scores):
+        if fid_dev <= min(fid_scores):
             # Save best
             torch.save(netD.state_dict(), model_path / f'model_weights_netD_best.pth')
             torch.save(netG.state_dict(), model_path / f'model_weights_netG_best.pth')
