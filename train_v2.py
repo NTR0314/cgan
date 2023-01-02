@@ -215,7 +215,7 @@ if __name__ == '__main__':
         best_epoch = int(tr_d['best_epoch'])
         start_epoch = int(tr_d['start_epoch'])
         fid_scores = list(tr_d['fid_scores'])
-        fid_scores_classes = tr_d['fid_scores_classes']
+        fid_scores_classes = tr_d['fid_scores_classes'].item()
         no_improve_count = int(tr_d['no_improve_count'])
     else:
         img_list = []
