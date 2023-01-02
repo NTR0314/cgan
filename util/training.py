@@ -24,7 +24,7 @@ def weights_init(m):
 
 def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train, dataset_dev, device,
                 img_list=[], G_losses=[], D_losses=[], inc_scores=[], fid_scores=[], fid_scores_classes={},
-                best_epoch=0, start_epoch=0, no_improve_count=0):
+                best_epoch=0, start_epoch=0, no_improve_count=0, ls_loss=True):
     # Set random seed for reproducibility
     manual_seed = 1337
     print("Using seed: ", manual_seed)
@@ -83,7 +83,10 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
             output = netD(real_cpu, real_img_labels).view(-1)
             # print(output, label)
             # Calculate loss on all-real batch
-            errD_real = criterion(output, label)
+            if not ls_loss:
+                errD_real = criterion(output, label)
+            else:
+                errD_real = 0.5 * ((output - label) ** 2).mean()
             # Calculate gradients for D in backward pass
             errD_real.backward()
             D_x = output.mean().item()
@@ -97,7 +100,10 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
             # Classify all fake batch with D
             output = netD(fake.detach(), real_img_labels).view(-1)
             # Calculate D's loss on the all-fake batch
-            errD_fake = criterion(output, label)
+            if not ls_loss:
+                errD_fake = criterion(output, label)
+            else:
+                errD_fake = 0.5 * ((output - label) ** 2).mean()
             # Calculate the gradients for this batch, accumulated (summed) with previous gradients
             errD_fake.backward()
             D_G_z1 = output.mean().item()
@@ -114,7 +120,10 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
             # Since we just updated D, perform another forward pass of all-fake batch through D
             output = netD(fake, real_img_labels).view(-1)
             # Calculate G's loss based on this output
-            errG = criterion(output, label)
+            if not ls_loss:
+                errG = criterion(output, label)
+            else:
+                errG = 0.5 * ((output - label) ** 2).mean()
             # Calculate gradients for G
             errG.backward()
             D_G_z2 = output.mean().item()

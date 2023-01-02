@@ -59,16 +59,19 @@ class GeneratorBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, nz=100, ngf=128, nc=3):
+    def __init__(self, nz=100, ngf=128, nc=3, bn=True, tconv=True):
         super(Generator, self).__init__()
         self.ngf = ngf
+        self.tconv = tconv
+        self.bn = bn
         self.linear = nn.Linear(nz + 10, 4 ** 2 * ngf)
 
-        self.gb1 = GeneratorBlock(ngf)
-        self.gb2 = GeneratorBlock(ngf)
-        self.gb3 = GeneratorBlock(ngf)
+        self.gb1 = GeneratorBlock(ngf, tconv=True)
+        self.gb2 = GeneratorBlock(ngf, tconv=True)
+        self.gb3 = GeneratorBlock(ngf, tconv=True)
 
-        self.bn1 = nn.BatchNorm2d(ngf)
+        if bn:
+            self.bn1 = nn.BatchNorm2d(ngf)
         self.c1 = nn.Conv2d(ngf, nc, kernel_size=1, padding=0)
 
     def forward(self, input_image, input_label):
@@ -87,7 +90,8 @@ class Generator(nn.Module):
         x = self.gb1(x)
         x = self.gb2(x)
         x = self.gb3(x)
-        x = self.bn1(x)
+        if self.bn:
+            x = self.bn1(x)
         x = nn.ReLU()(x)
         x = self.c1(x)
         x = nn.Tanh()(x)
@@ -188,8 +192,8 @@ if __name__ == '__main__':
     ngf = args.ngf
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator().to(device)
-    netD = Discriminator().to(device)
+    netG = Generator(bn=False, tconv=False).to(device)
+    netD = Discriminator(sn=True, lrelu=False).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
@@ -204,7 +208,7 @@ if __name__ == '__main__':
         util.training.train_model(model_path, 100, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train,
                                   dataset_dev, device, img_list, G_losses, D_losses, inc_scores, fid_scores,
                                   fid_scores_classes,
-                                  best_epoch, start_epoch, no_improve_count)
+                                  best_epoch, start_epoch, no_improve_count, ls_loss=False)
 
     # Generate images if flag is set.
     if args.gen_images:

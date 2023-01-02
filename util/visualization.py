@@ -18,8 +18,10 @@ def gen_plots(img_list, G_losses, D_losses, base_path, model_name=""):
     # Plot losses
     plt.figure(figsize=(10, 5))
     plt.title(f"Generator and Discriminator Loss During Training ({model_name})")
-    plt.plot(G_losses, label="G")
-    plt.plot(D_losses, label="D")
+    plt.plot(G_losses[::10], label="G")
+    plt.plot(D_losses[::10], label="D")
+    ax = plt.gca()
+    ax.set_ylim([0, 5.])
     plt.xlabel("iterations")
     plt.ylabel("Loss")
     plt.legend()
