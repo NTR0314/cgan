@@ -7,7 +7,7 @@ import torch
 from torch import nn
 import util.visualization as vis
 import util.training
-from util.io_custom import get_cifar_datasets
+from util.io_custom import get_cifar_datasets, load_best_cp_data
 from torch.nn import functional as F
 from util import metrics as me
 
