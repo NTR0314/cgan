@@ -38,6 +38,7 @@ class GeneratorBlock(nn.Module):
 
         self.c1 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
         self.c2 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
+        self.do = nn.Dropout2d(p=0.5)
 
     def forward(self, x):
         orig = x
@@ -52,6 +53,7 @@ class GeneratorBlock(nn.Module):
             x = self.bn2(x)
         x = nn.ReLU()(x)
         x = self.c2(x)
+        x = self.do(x)
         # TODO fix residual
         if self.residual:
             return x + orig
