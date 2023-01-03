@@ -10,54 +10,7 @@ import util.training
 from util.io_custom import get_cifar_datasets, load_best_cp_data
 from torch.nn import functional as F
 from util import metrics as me
-
-
-class UpsampleConv(nn.Module):
-    def __init__(self, in_feat, out_feat, scale_factor=2, sn=False):
-        super().__init__()
-        self.us = nn.Upsample(scale_factor=scale_factor)
-        self.c2d = nn.Conv2d(in_feat, out_feat, kernel_size=3, stride=1, padding=1)
-        if sn:
-            self.c2d = nn.utils.spectral_norm(self.c2d)
-
-    def forward(self, x):
-        return self.c2d(self.us(x))
-
-
-class GeneratorBlock(nn.Module):
-    def __init__(self, ngf, bn=True, tconv=True, residual=False):
-        super().__init__()
-        self.bn = bn
-        self.tconv = tconv
-        self.residual = residual
-
-        self.tconv1 = nn.ConvTranspose2d(ngf, ngf, 4, 2, 1)
-
-        self.bn1 = nn.BatchNorm2d(ngf)
-        self.bn2 = nn.BatchNorm2d(ngf)
-
-        self.c1 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
-        self.c2 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
-        self.do = nn.Dropout2d(p=0.5)
-
-    def forward(self, x):
-        orig = x
-        if self.bn:
-            x = self.bn1(x)
-        x = nn.ReLU()(x)
-        if self.tconv:
-            x = self.tconv1(x)
-        else:
-            x = self.c1(nn.Upsample(scale_factor=2)(x))
-        if self.bn:
-            x = self.bn2(x)
-        x = nn.ReLU()(x)
-        x = self.c2(x)
-        x = self.do(x)
-        # TODO fix residual
-        if self.residual:
-            return x + orig
-        return x
+from util.architecture import GeneratorBlock, DiscriminatorBlock, UpsampleConv
 
 
 class Generator(nn.Module):
@@ -101,45 +54,13 @@ class Generator(nn.Module):
         return x
 
 
-class DiscriminatorBlock(nn.Module):
-    def __init__(self, in_ch, out_ch, lrelu=False, suppres_first_relu=False, down_sample=True, sn=True):
-        super().__init__()
-        self.in_ch = in_ch
-        self.out_ch = out_ch
-        self.ds = down_sample
-        self.lrelu = lrelu
-        self.suppres_first_relu = suppres_first_relu
-        self.c1 = nn.Conv2d(in_ch, out_ch, 3, 1, 1)
-        self.c2 = nn.Conv2d(out_ch, out_ch, 3, stride=1, padding=1)
-        if sn:
-            self.c1 = nn.utils.spectral_norm(self.c1)
-            self.c2 = nn.utils.spectral_norm(self.c2)
-
-    def forward(self, x):
-        if not self.suppres_first_relu:
-            if self.lrelu:
-                x = nn.LeakyReLU()(x)
-            else:
-                x = nn.ReLU()(x)
-
-        x = self.c1(x)
-
-        if self.lrelu:
-            x = nn.LeakyReLU()(x)
-        else:
-            x = nn.ReLU()(x)
-        x = self.c2(x)
-
-        return x
-
-
 class Discriminator(nn.Module):
     def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10):
         super(Discriminator, self).__init__()
 
         self.sn = sn
         self.num_classes = num_classes
-        self.d1 = DiscriminatorBlock(nc, ndf, suppres_first_relu=True, down_sample=True, lrelu=lrelu, sn=sn)
+        self.d1 = DiscriminatorBlock(nc, ndf, down_sample=True, lrelu=lrelu, sn=sn, suppres_first_relu=True)
         self.d2 = DiscriminatorBlock(ndf, ndf, down_sample=True, lrelu=lrelu, sn=sn)
         self.d3 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn)
         self.d4 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn)
@@ -155,14 +76,19 @@ class Discriminator(nn.Module):
         # One hot of labels \in [0, 9]
         oh = F.one_hot(y.long(), num_classes=self.num_classes).float()
 
+        print(x.shape)
         x = self.d1(x)
+        print(x.shape)
         x = self.d2(x)
+        print(x.shape)
         x = self.d3(x)
+        print(x.shape)
         x = self.d4(x)  # b x ndf x 8 x 8
+        print(x.shape)
         x = torch.sum(x, (2, 3))  # b x ndf
 
-#        print(oh.shape)
-#        print(self.emb(oh).shape)
+        #        print(oh.shape)
+        #        print(self.emb(oh).shape)
         proj = torch.sum(self.emb(oh) * x, 1, keepdim=True)  # b x 1
         lin = self.ll(x)
 
@@ -201,7 +127,8 @@ if __name__ == '__main__':
         f.write('\n\n ----- \n\n')
         f.write(str(netD))
 
-    netG, netD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, fid_scores, fid_scores_classes, no_improve_count = load_best_cp_data(model_path, netG, netD)
+    netG, netD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, fid_scores, fid_scores_classes, no_improve_count = load_best_cp_data(
+        model_path, netG, netD)
 
     # Load data
     dataset_train, dataset_test, dataset_dev, label_names = get_cifar_datasets()
