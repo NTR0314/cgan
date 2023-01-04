@@ -2,7 +2,7 @@ from torch import nn
 
 
 class DiscriminatorBlock(nn.Module):
-    def __init__(self, in_ch, out_ch, lrelu=False, suppres_first_relu=False, down_sample=True, sn=True):
+    def __init__(self, in_ch, out_ch, lrelu=False, suppres_first_relu=False, down_sample=True, sn=True, do=False):
         super().__init__()
         self.in_ch = in_ch
         self.out_ch = out_ch
@@ -10,6 +10,9 @@ class DiscriminatorBlock(nn.Module):
         self.lrelu = lrelu
         self.suppres_first_relu = suppres_first_relu
         self.c1 = nn.Conv2d(in_ch, out_ch, 3, 1, 1)
+        self.dof = do
+        if self.dof:
+            self.do = nn.Dropout2d(p=0.5)
         if self.ds:
             self.c2 = nn.Conv2d(out_ch, out_ch, 3, stride=2, padding=1)
         else:
@@ -32,12 +35,14 @@ class DiscriminatorBlock(nn.Module):
         else:
             x = nn.ReLU()(x)
         x = self.c2(x)
+        if self.dof:
+            x = self.do(x)
 
         return x
 
 
 class GeneratorBlock(nn.Module):
-    def __init__(self, ngf, bn=True, tconv=True, residual=False):
+    def __init__(self, ngf, bn=True, tconv=True, residual=False, do=False):
         super().__init__()
         self.bn = bn
         self.tconv = tconv
@@ -50,7 +55,9 @@ class GeneratorBlock(nn.Module):
 
         self.c1 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
         self.c2 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
-        self.do = nn.Dropout2d(p=0.5)
+        self.dof = do
+        if self.dof:
+            self.do = nn.Dropout2d(p=0.5)
 
     def forward(self, x):
         orig = x
@@ -65,7 +72,8 @@ class GeneratorBlock(nn.Module):
             x = self.bn2(x)
         x = nn.ReLU()(x)
         x = self.c2(x)
-        x = self.do(x)
+        if self.dof:
+            x = self.do(x)
         # TODO fix residual
         if self.residual:
             return x + orig
