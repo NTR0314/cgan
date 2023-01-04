@@ -106,6 +106,9 @@ if __name__ == '__main__':
     parser.add_argument("--no_last_inception", action="store_true",
                         help="If this arg is set then the last inception scores will not be calculated. This is mainly used for local computation.")
     parser.add_argument("--ngf", help="ngf dim", type=int, default=64)
+    requiredNamed = parser.add_argument_group('required named arguments')
+    requiredNamed.add_argument("--dog", action="store_true", help="Dropout Generator y/n")
+    requiredNamed.add_argument("--dod", action="store_true", help="Dropout Discriminator y/n")
     args = parser.parse_args()
     model_path = Path(f"models/{args.model_name}/")
     os.makedirs(model_path, exist_ok=True)
@@ -117,11 +120,13 @@ if __name__ == '__main__':
     # Create the generator
     nz = 100
     nc = 3  # 3 channels rgb
+    dod = args.dod
+    dog = args.dog
     ngf = args.ngf
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(bn=True, tconv=True, do=True).to(device)
-    netD = Discriminator(sn=True, lrelu=True, do=True).to(device)
+    netG = Generator(bn=True, tconv=True, do=dog).to(device)
+    netD = Discriminator(sn=True, lrelu=True, do=dod).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
