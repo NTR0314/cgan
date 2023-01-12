@@ -14,16 +14,16 @@ from util.architecture import GeneratorBlock, DiscriminatorBlock, UpsampleConv
 
 
 class Generator(nn.Module):
-    def __init__(self, nz=100, ngf=128, nc=3, bn=True, tconv=True):
+    def __init__(self, nz=100, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True):
         super(Generator, self).__init__()
         self.ngf = ngf
         self.tconv = tconv
         self.bn = bn
         self.linear = nn.Linear(nz + 10, 4 ** 2 * ngf)
 
-        self.gb1 = GeneratorBlock(ngf, tconv=True)
-        self.gb2 = GeneratorBlock(ngf, tconv=True)
-        self.gb3 = GeneratorBlock(ngf, tconv=True)
+        self.gb1 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc)
+        self.gb2 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc)
+        self.gb3 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc)
 
         if bn:
             self.bn1 = nn.BatchNorm2d(ngf)
@@ -55,15 +55,15 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10):
+    def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10, residual=True, lsc=True):
         super(Discriminator, self).__init__()
 
         self.sn = sn
         self.num_classes = num_classes
-        self.d1 = DiscriminatorBlock(nc, ndf, suppres_first_relu=True, down_sample=True, lrelu=lrelu, sn=sn)
-        self.d2 = DiscriminatorBlock(ndf, ndf, down_sample=True, lrelu=lrelu, sn=sn)
-        self.d3 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn)
-        self.d4 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn)
+        self.d1 = DiscriminatorBlock(nc, ndf, suppres_first_relu=True, down_sample=True, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
+        self.d2 = DiscriminatorBlock(ndf, ndf, down_sample=True, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
+        self.d3 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
+        self.d4 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
 
         self.emb = nn.Linear(num_classes, ndf)
         if self.sn:
@@ -114,10 +114,12 @@ if __name__ == '__main__':
     nc = 3  # 3 channels rgb
     num_epochs = 200
     ngf = args.ngf
+    learnable_sc = False
+    residual = True
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(bn=False, tconv=True).to(device)
-    netD = Discriminator(sn=False, lrelu=False).to(device)
+    netG = Generator(bn=False, tconv=True, residual=residual, lsc= learnable_sc).to(device)
+    netD = Discriminator(sn=False, lrelu=False, residual=residual, lsc= learnable_sc).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
