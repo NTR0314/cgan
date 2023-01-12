@@ -2,12 +2,14 @@ from torch import nn
 
 
 class DiscriminatorBlock(nn.Module):
-    def __init__(self, in_ch, out_ch, lrelu=False, suppres_first_relu=False, down_sample=True, sn=True, do=False):
+    def __init__(self, in_ch, out_ch, lrelu=False, suppres_first_relu=False, down_sample=True, sn=True, do=False, learnable_sc=True, residual=True):
         super().__init__()
         self.in_ch = in_ch
+        self.residual = residual
         self.out_ch = out_ch
         self.ds = down_sample
         self.lrelu = lrelu
+        self.learnable_sc = learnable_sc
         self.suppres_first_relu = suppres_first_relu
         self.c1 = nn.Conv2d(in_ch, out_ch, 3, 1, 1)
         self.dof = do
@@ -20,8 +22,20 @@ class DiscriminatorBlock(nn.Module):
         if sn:
             self.c1 = nn.utils.spectral_norm(self.c1)
             self.c2 = nn.utils.spectral_norm(self.c2)
+        if self.learnable_sc:
+            self.sc_conv = nn.Conv2d(out_ch, out_ch, kernel_size=1, stride=1, padding=0)
+            if sn:
+                self.sc_conv = nn.utils.spectral_norm(self.sc_conv)
 
     def forward(self, x):
+        residual = x
+        if self.residual:
+            if self.learnable_sc:
+                residual = self.sc_conv(residual)
+        if self.ds:
+            residual = nn.AvgPool2d(residual)
+
+
         if not self.suppres_first_relu:
             if self.lrelu:
                 x = nn.LeakyReLU()(x)
@@ -38,7 +52,7 @@ class DiscriminatorBlock(nn.Module):
         if self.dof:
             x = self.do(x)
 
-        return x
+        return x + residual
 
 
 class GeneratorBlock(nn.Module):
