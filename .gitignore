@@ -6,3 +6,6 @@ cifar-10-batches-py/
 *.log
 *.swp
 util/__pycache__/
+models/
+old_models/
+old_train/
