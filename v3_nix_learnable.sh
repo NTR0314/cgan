@@ -3,7 +3,7 @@ PATH=$PATH:"/opt/bwhpc/common/devel/miniconda3/bin:/opt/bwhpc/common/devel/minic
 source activate cGAN 
 export LD_LIBRARY_PATH="/home/kit/stud/ufkpt/.conda/envs/cGAN/lib:"$LD_LIBRARY_PATH
 
-model_name='v3_nix'
+model_name='v3_nix_learnable'
 model_path="/home/kit/stud/ufkpt/NN_pr/models/${model_name}"
 log_path="${model_path}/training.log"
 
