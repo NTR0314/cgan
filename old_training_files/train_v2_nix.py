@@ -106,17 +106,18 @@ if __name__ == '__main__':
     os.makedirs(model_path, exist_ok=True)
     # Root directory for dataset
     workers = 2
-    batch_size = 128
+    batch_size = 64
     lr = 0.0002
-    beta1 = 0.5
+    beta1 = 0.0
     # Create the generator
-    nz = 100
+    nz = 128
     nc = 3  # 3 channels rgb
+    num_epochs = 200
     ngf = args.ngf
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(bn=False, tconv=False).to(device)
-    netD = Discriminator(sn=True, lrelu=True).to(device)
+    netG = Generator(bn=False, tconv=True).to(device)
+    netD = Discriminator(sn=False, lrelu=False).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
@@ -129,7 +130,7 @@ if __name__ == '__main__':
     dataset_train, dataset_test, dataset_dev, label_names = get_cifar_datasets()
 
     if args.training:
-        util.training.train_model(model_path, 100, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train,
+        util.training.train_model(model_path, 200, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train,
                                   dataset_dev, device, img_list, G_losses, D_losses, inc_scores, fid_scores,
                                   fid_scores_classes,
                                   best_epoch, start_epoch, no_improve_count, ls_loss=False)

@@ -101,42 +101,25 @@ if __name__ == '__main__':
     parser.add_argument("--no_last_inception", action="store_true",
                         help="If this arg is set then the last inception scores will not be calculated. This is mainly used for local computation.")
     parser.add_argument("--ngf", help="ngf dim", type=int, default=64)
-    requiredNamed = parser.add_argument_group('required named arguments')
-    requiredNamed.add_argument('-e', help='What module to exclude. 1 = bn, 2 = tconv, 3 = sn, 4 = lrelu, 5 = ls',
-                               type=int, required=True)
     args = parser.parse_args()
-
-    # Exclude 1 model
-    bn = tconv = sn = lrelu = ls = True
-    # dumb but don't know how to make this smarter
-    if args.e == 1:
-        bn = False
-    elif args.e == 2:
-        tconv = False
-    elif args.e == 3:
-        sn = False
-    elif args.e == 4:
-        lrelu = False
-    elif args.e == 5:
-        ls = False
-    else:
-        raise ValueError("e must be in {1,2,3,4,5}")
-
     model_path = Path(f"models/{args.model_name}/")
     os.makedirs(model_path, exist_ok=True)
     # Root directory for dataset
     workers = 2
-    batch_size = 128
+    batch_size = 64
     lr = 0.0002
-    beta1 = 0.5
+    beta1 = 0.0
     # Create the generator
-    nz = 100
+    nz = 128
     nc = 3  # 3 channels rgb
+    num_epochs = 200
     ngf = args.ngf
+    learnable_sc = True
+    residual = True
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(bn=bn, tconv=tconv).to(device)
-    netD = Discriminator(sn=sn, lrelu=lrelu).to(device)
+    netG = Generator(bn=False, tconv=True, residual=re).to(device)
+    netD = Discriminator(sn=False, lrelu=False).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
@@ -149,10 +132,10 @@ if __name__ == '__main__':
     dataset_train, dataset_test, dataset_dev, label_names = get_cifar_datasets()
 
     if args.training:
-        util.training.train_model(model_path, 100, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train,
+        util.training.train_model(model_path, 200, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train,
                                   dataset_dev, device, img_list, G_losses, D_losses, inc_scores, fid_scores,
                                   fid_scores_classes,
-                                  best_epoch, start_epoch, no_improve_count, ls_loss=ls)
+                                  best_epoch, start_epoch, no_improve_count, ls_loss=False)
 
     # Generate images if flag is set.
     if args.gen_images:
