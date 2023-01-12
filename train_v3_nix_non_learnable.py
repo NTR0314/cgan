@@ -14,7 +14,7 @@ from util.architecture import GeneratorBlock, DiscriminatorBlock, UpsampleConv
 
 
 class Generator(nn.Module):
-    def __init__(self, nz=100, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True):
+    def __init__(self, nz, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True):
         super(Generator, self).__init__()
         self.ngf = ngf
         self.tconv = tconv
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     residual = True
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(bn=False, tconv=True, residual=residual, lsc= learnable_sc).to(device)
+    netG = Generator(nz=nz, bn=False, tconv=True, residual=residual, lsc= learnable_sc).to(device)
     netD = Discriminator(sn=False, lrelu=False, residual=residual, lsc= learnable_sc).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))

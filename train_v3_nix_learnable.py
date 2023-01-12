@@ -14,7 +14,7 @@ from util.architecture import GeneratorBlock, DiscriminatorBlock, UpsampleConv
 
 
 class Generator(nn.Module):
-    def __init__(self, nz=100, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True):
+    def __init__(self, nz, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True):
         super(Generator, self).__init__()
         self.ngf = ngf
         self.tconv = tconv
@@ -36,7 +36,6 @@ class Generator(nn.Module):
         input_label = F.one_hot(input_label, num_classes=10)
         # print(input_image.shape, input_label.shape, input_label.dtype)
         x = torch.cat((input_image, input_label), dim=1)
-        # print(x.shape)
         # B x nz + 10
         x = self.linear(x)
         # B x ngf * 4 * 4
@@ -118,7 +117,7 @@ if __name__ == '__main__':
     residual = True
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(bn=False, tconv=True, residual=residual, lsc= learnable_sc).to(device)
+    netG = Generator(nz=nz, bn=False, tconv=True, residual=residual, lsc= learnable_sc).to(device)
     netD = Discriminator(sn=False, lrelu=False, residual=residual, lsc= learnable_sc).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))

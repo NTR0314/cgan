@@ -23,7 +23,7 @@ class DiscriminatorBlock(nn.Module):
             self.c1 = nn.utils.spectral_norm(self.c1)
             self.c2 = nn.utils.spectral_norm(self.c2)
         if self.learnable_sc:
-            self.sc_conv = nn.Conv2d(out_ch, out_ch, kernel_size=1, stride=1, padding=0)
+            self.sc_conv = nn.Conv2d(in_ch, out_ch, kernel_size=1, stride=1, padding=0)
             if sn:
                 self.sc_conv = nn.utils.spectral_norm(self.sc_conv)
 
@@ -33,7 +33,7 @@ class DiscriminatorBlock(nn.Module):
             if self.learnable_sc:
                 residual = self.sc_conv(residual)
         if self.ds:
-            residual = nn.AvgPool2d(residual)
+            residual = nn.AvgPool2d(kernel_size=2)(residual)
 
 
         if not self.suppres_first_relu:
@@ -92,7 +92,9 @@ class GeneratorBlock(nn.Module):
             x = self.do(x)
         if self.residual:
             if self.learnable_sc:
-                return x + self.sc_conv(nn.Upsample(scale_factor=2)(x))
+                residual = self.sc_conv(nn.Upsample(scale_factor=2)(orig))
+                print(residual.shape)
+                return x + residual
             else:
                 return x + nn.Upsample(scale_factor=2)(x)
         else:
