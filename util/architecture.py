@@ -42,11 +42,12 @@ class DiscriminatorBlock(nn.Module):
 
 
 class GeneratorBlock(nn.Module):
-    def __init__(self, ngf, bn=True, tconv=True, residual=False, do=False):
+    def __init__(self, ngf, bn=True, tconv=True, residual=True, do=False, learnable_sc=True):
         super().__init__()
         self.bn = bn
         self.tconv = tconv
         self.residual = residual
+        self.learnable_sc = learnable_sc
 
         self.tconv1 = nn.ConvTranspose2d(ngf, ngf, 4, 2, 1)
 
@@ -55,6 +56,7 @@ class GeneratorBlock(nn.Module):
 
         self.c1 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
         self.c2 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
+        self.sc_conv = nn.Conv2d(ngf, ngf, kernel_size=1, padding=0)
         self.dof = do
         if self.dof:
             self.do = nn.Dropout2d(p=0.5)
@@ -74,10 +76,13 @@ class GeneratorBlock(nn.Module):
         x = self.c2(x)
         if self.dof:
             x = self.do(x)
-        # TODO fix residual
         if self.residual:
-            return x + orig
-        return x
+            if self.learnable_sc:
+                return x + self.sc_conv(nn.Upsample(scale_factor=2)(x))
+            else:
+                return x + nn.Upsample(scale_factor=2)(x)
+        else:
+            return x
 
 
 class UpsampleConv(nn.Module):

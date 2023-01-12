@@ -59,8 +59,8 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
     fake_label = 0.
 
     # Setup Adam optimizers for both G and D
-    optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.999))
-    optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
+    optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.9))
+    optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.9))
 
     # Lists to keep track of progress
     print("Starting Training Loop...")
