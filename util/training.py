@@ -150,7 +150,6 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
         inc_scores.append((is_mean, is_std))
         # Calc FID for dev set
         reals = torch.stack([data['feat'] for data in dataset_dev])
-        # TODO
         reals_labels = torch.stack([data['label'] for data in dataset_dev])
 
         before_time = time.time()

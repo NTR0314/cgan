@@ -98,9 +98,19 @@ def load_best_cp_data(model_path, netG, netD):
     tr_d_path = model_path / 'training_data.npz'
 
     # If existing load: best weights & training data
+
+    # Remove dumb prefix if existing
     if os.path.exists(best_cp_d_path) and os.path.exists(best_cp_g_path):
-        netD.load_state_dict(torch.load(best_cp_d_path))
-        netG.load_state_dict(torch.load(best_cp_g_path))
+        net_d_dict = torch.load(best_cp_d_path)
+        net_g_dict = torch.load(best_cp_g_path)
+        for net_dict in [net_g_dict, net_d_dict]:
+            for keyname in net_dict.keys():
+                if 'model.' in keyname:
+                    keyname_new = keyname[len('module.'):]
+                    net_dict[keyname_new] = net_dict.pop(keyname)
+                    
+        netD.load_state_dict(net_d_dict)
+        netG.load_state_dict(net_g_dict)
     if os.path.exists(tr_d_path):
         tr_d = np.load(tr_d_path, allow_pickle=True)
         img_list = list(tr_d['img_list'])

@@ -117,8 +117,8 @@ if __name__ == '__main__':
     residual = True
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(nz=nz, bn=False, tconv=True, residual=residual, lsc= learnable_sc).to(device)
-    netD = Discriminator(sn=False, lrelu=False, residual=residual, lsc= learnable_sc).to(device)
+    netG = Generator(nz=nz, bn=False, tconv=True, residual=residual, lsc=learnable_sc).to(device)
+    netD = Discriminator(sn=False, lrelu=False, residual=residual, lsc=learnable_sc).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
