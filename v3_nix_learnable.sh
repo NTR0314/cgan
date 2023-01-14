@@ -8,4 +8,4 @@ model_path="/home/kit/stud/ufkpt/NN_pr/models/${model_name}"
 log_path="${model_path}/training.log"
 
 mkdir -p $model_path
-python3 "/home/kit/stud/ufkpt/NN_pr/train_${model_name}.py" -m $model_name -g -t &>> $log_path
+python3 "/home/kit/stud/ufkpt/NN_pr/train_${model_name}.py" -m $model_name -g -t -s &>> $log_path

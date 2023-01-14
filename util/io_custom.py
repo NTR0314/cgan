@@ -104,8 +104,10 @@ def load_best_cp_data(model_path, netG, netD):
     if os.path.exists(best_cp_d_path) and os.path.exists(best_cp_g_path):
         net_d_dict = torch.load(best_cp_d_path)
         net_g_dict = torch.load(best_cp_g_path)
-        net_d_dict_fixed = OrderedDict([(k[len('module.'):], v) for k, v in net_d_dict.items() if 'module.' in k])
-        net_g_dict_fixed = OrderedDict([(k[len('module.'):], v) for k, v in net_g_dict.items() if 'module.' in k])
+        # DEBUG
+        print(f"\n\n{net_d_dict.keys()=}\n\n")
+        net_d_dict_fixed = OrderedDict([(k[len('module.'):], v) if 'module.' in k else (k,v) for k, v in net_d_dict.items()])
+        net_g_dict_fixed = OrderedDict([(k[len('module.'):], v) if 'module.' in k else (k,v) for k, v in net_g_dict.items()])
 
         netD.load_state_dict(net_d_dict_fixed)
         netG.load_state_dict(net_g_dict_fixed)
