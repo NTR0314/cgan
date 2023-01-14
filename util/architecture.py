@@ -93,7 +93,7 @@ class GeneratorBlock(nn.Module):
         if self.residual:
             if self.learnable_sc:
                 residual = self.sc_conv(nn.Upsample(scale_factor=2)(orig))
-                print(residual.shape)
+                #print(residual.shape)
                 return x + residual
             else:
                 return x + nn.Upsample(scale_factor=2)(x)

@@ -99,6 +99,8 @@ if __name__ == '__main__':
                              "already existing the model will be loaded.")
     parser.add_argument("--no_last_inception", action="store_true",
                         help="If this arg is set then the last inception scores will not be calculated. This is mainly used for local computation.")
+    parser.add_argument("-s", "--sloppy", action="store_true",
+                        help="If this arg is set then a sloppy IS of 50 images will be calculated instead of FID and IS of 1000 images.")
     parser.add_argument("--ngf", help="ngf dim", type=int, default=64)
     args = parser.parse_args()
     model_path = Path(f"models/{args.model_name}/")
@@ -134,7 +136,7 @@ if __name__ == '__main__':
         util.training.train_model(model_path, 200, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train,
                                   dataset_dev, device, img_list, G_losses, D_losses, inc_scores, fid_scores,
                                   fid_scores_classes,
-                                  best_epoch, start_epoch, no_improve_count, ls_loss=False)
+                                  best_epoch, start_epoch, no_improve_count, ls_loss=False, sloppy=args.sloppy)
 
     # Generate images if flag is set.
     if args.gen_images:

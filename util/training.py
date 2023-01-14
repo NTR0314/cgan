@@ -25,7 +25,7 @@ def weights_init(m):
 
 def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train, dataset_dev, device,
                 img_list=[], G_losses=[], D_losses=[], inc_scores=[], fid_scores=[], fid_scores_classes={},
-                best_epoch=0, start_epoch=0, no_improve_count=0, ls_loss=True):
+                best_epoch=0, start_epoch=0, no_improve_count=0, ls_loss=True, sloppy=False):
     # Set random seed for reproducibility
     manual_seed = 1337
     print("Using seed: ", manual_seed)
@@ -141,63 +141,89 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
             fake = netG(fixed_noise, fixed_labels).detach().cpu()
             img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
 
-        # Calc IS/FID/class-FID for each Epoch
-        gen_imgs = me.gen_images(netG, device, nz)  # Generate 1000 random images from generator
-        # Calc IS
-        before_time = time.time()
-        is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
-        print(f"Inception score calculation took {time.time() - before_time} seconds")
-        inc_scores.append((is_mean, is_std))
-        # Calc FID for dev set
-        reals = torch.stack([data['feat'] for data in dataset_dev])
-        reals_labels = torch.stack([data['label'] for data in dataset_dev])
+        if sloppy:
+            # Calc IS/FID/class-FID for each Epoch
+            gen_imgs = me.gen_images(netG, device, nz, num_img_per_class=5)  # Generate 1000 random images from generator
+            # Calc IS
+            is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
+            inc_scores.append((is_mean, is_std))
 
-        before_time = time.time()
-        fid_dev = me.FID_torchmetrics(gen_imgs, reals)
-        print(f"FID dev score calculation took {time.time() - before_time} seconds")
-        fid_scores.append(fid_dev)
-        # Calc FID score for each class
-        for class_i in range(10):
-            before_time = time.time()
-            gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
-            mid_time = time.time()
-            fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
-            print(f"Current label/clas is {class_i}")
-            print(f"FID passed image labes are: {reals_labels[class_i * 100:(class_i + 1) * 100]}")
-            print(f"FID class {class_i} score calculation took {time.time() - mid_time} seconds")
-            print(f"FID class {class_i} image generation took  {mid_time - before_time} seconds")
-            if not class_i in fid_scores_classes:
-                fid_scores_classes[class_i] = [fid_i]
+            # Save best pt, compare mean.
+            if is_mean >= max(inc_scores, key=lambda x: x[0])[0]:
+                # Save best
+                torch.save(netD.state_dict(), model_path / f'model_weights_netD_best.pth')
+                torch.save(netG.state_dict(), model_path / f'model_weights_netG_best.pth')
+                no_improve_count = 0
             else:
-                fid_scores_classes[class_i].append(fid_i)
+                no_improve_count += 1
 
-        # Save best pt, compare mean.
-        if fid_dev <= min(fid_scores):
-            # Save best
-            torch.save(netD.state_dict(), model_path / f'model_weights_netD_best.pth')
-            torch.save(netG.state_dict(), model_path / f'model_weights_netG_best.pth')
-            no_improve_count = 0
+            # Stop if not improvement after 15 epochs
+            if no_improve_count >= 15:
+                print("No improvements for 15 epochs. Breaking train loop")
+                break
         else:
-            no_improve_count += 1
-        # Stop if not improvement after 15 epochs
-        if no_improve_count >= 15:
-            print("No improvements for 15 epochs. Breaking train loop")
-            break
+            # Calc IS/FID/class-FID for each Epoch
+            gen_imgs = me.gen_images(netG, device, nz)  # Generate 1000 random images from generator
+            # Calc IS
+            before_time = time.time()
+            is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
+            print(f"Inception score calculation took {time.time() - before_time} seconds")
+            inc_scores.append((is_mean, is_std))
+            # Calc FID for dev set
+            reals = torch.stack([data['feat'] for data in dataset_dev])
+            reals_labels = torch.stack([data['label'] for data in dataset_dev])
+
+            before_time = time.time()
+            fid_dev = me.FID_torchmetrics(gen_imgs, reals)
+            print(f"FID dev score calculation took {time.time() - before_time} seconds")
+            fid_scores.append(fid_dev)
+            # Calc FID score for each class
+            for class_i in range(10):
+                before_time = time.time()
+                gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
+                mid_time = time.time()
+                fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
+                print(f"Current label/clas is {class_i}")
+                print(f"FID passed image labes are: {reals_labels[class_i * 100:(class_i + 1) * 100]}")
+                print(f"FID class {class_i} score calculation took {time.time() - mid_time} seconds")
+                print(f"FID class {class_i} image generation took  {mid_time - before_time} seconds")
+                if not class_i in fid_scores_classes:
+                    fid_scores_classes[class_i] = [fid_i]
+
+            # Save best pt, compare mean.
+            if fid_dev <= min(fid_scores):
+                # Save best
+                torch.save(netD.state_dict(), model_path / f'model_weights_netD_best.pth')
+                torch.save(netG.state_dict(), model_path / f'model_weights_netG_best.pth')
+                no_improve_count = 0
+            else:
+                no_improve_count += 1
+
+            # Stop if not improvement after 15 epochs
+            if no_improve_count >= 15:
+                print("No improvements for 15 epochs. Breaking train loop")
+                break
+
+        # Save training data every epoch.
+        np.savez(model_path / f"training_data.npz",
+                 img_list=img_list,
+                 G_losses=G_losses,
+                 D_losses=D_losses,
+                 inc_scores=inc_scores,
+                 best_epoch=best_epoch,
+                 start_epoch=epoch,
+                 fid_scores=fid_scores,
+                 fid_scores_classes=fid_scores_classes,
+                 no_improve_count=no_improve_count)
+
+        # Save checkpoint every epoch.
+        torch.save(netD.state_dict(), model_path / f'model_weights_netD_{epoch}.pth')
+        torch.save(netG.state_dict(), model_path / f'model_weights_netG_{epoch}.pth')
 
         # Output training stats
         print(f'[{epoch}/{num_epochs}][{i}/{len(dataloader)}]\tLoss_D: {errD.item()}\tLoss_G:'
               + f'{errG.item()}\tD(x): {D_x}\tD(G(z)): {D_G_z1} / {D_G_z2} - IS-mean: {is_mean} - FID: {fid_dev}')
 
-    np.savez(model_path / f"training_data.npz",
-             img_list=img_list,
-             G_losses=G_losses,
-             D_losses=D_losses,
-             inc_scores=inc_scores,
-             best_epoch=best_epoch,
-             start_epoch=epoch,
-             fid_scores=fid_scores,
-             fid_scores_classes=fid_scores_classes,
-             no_improve_count=no_improve_count)
 
     # Save model after training:
     # https://pytorch.org/tutorials/beginner/basics/saveloadrun_tutorial.html#save-and-load-the-model

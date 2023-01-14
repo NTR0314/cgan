@@ -8,7 +8,7 @@ from torch.nn import functional as F
 from torchvision.models.inception import inception_v3
 from torchmetrics.image.fid import FrechetInceptionDistance
 
-def gen_images(generator, device, nz):
+def gen_images(generator, device, nz, num_img_per_class=100):
     # Set neccessary seeds for reproducability
     np.random.seed(1337)
     torch.manual_seed(1337)
@@ -16,14 +16,13 @@ def gen_images(generator, device, nz):
 
     # Generate 1000 images 100 per class as the ex sheet states.
     gen_imgs = []
-    labels = torch.arange(0, 10).repeat(100).to(device)
+    labels = torch.arange(0, 10).repeat(num_img_per_class).to(device)
     generator.eval()
-    for i in range(1000):
+    for i in range(len(labels)):
         noise = torch.randn(1, nz, 1, 1, device=device)
         gen_imgs.append(generator(noise, labels[i].unsqueeze(-1)).squeeze().detach().cpu())
     generator.train()
 
-    # print(gen_imgs[0].shape, gen_imgs[0].dtype)
     return torch.stack(gen_imgs)
 
 def gen_images_class(generator, device, nz, num_imgs, class_id):
