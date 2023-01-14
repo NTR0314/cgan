@@ -3,6 +3,7 @@
 
 import os
 import random
+from datetime import time
 
 import numpy as np
 import torch
@@ -161,23 +162,33 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
                 print("No improvements for 15 epochs. Breaking train loop")
                 break
         else:
-            # Calculate sloppy IS (only 50 images instead of 1000
+            # Calc IS/FID/class-FID for each Epoch
             gen_imgs = me.gen_images(netG, device, nz)  # Generate 1000 random images from generator
             # Calc IS
+            before_time = time.time()
             is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
+            print(f"Inception score calculation took {time.time() - before_time} seconds")
             inc_scores.append((is_mean, is_std))
             # Calc FID for dev set
             reals = torch.stack([data['feat'] for data in dataset_dev])
+            reals_labels = torch.stack([data['label'] for data in dataset_dev])
+
+            before_time = time.time()
             fid_dev = me.FID_torchmetrics(gen_imgs, reals)
+            print(f"FID dev score calculation took {time.time() - before_time} seconds")
             fid_scores.append(fid_dev)
             # Calc FID score for each class
             for class_i in range(10):
+                before_time = time.time()
                 gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
+                mid_time = time.time()
                 fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
+                print(f"Current label/clas is {class_i}")
+                print(f"FID passed image labes are: {reals_labels[class_i * 100:(class_i + 1) * 100]}")
+                print(f"FID class {class_i} score calculation took {time.time() - mid_time} seconds")
+                print(f"FID class {class_i} image generation took  {mid_time - before_time} seconds")
                 if not class_i in fid_scores_classes:
                     fid_scores_classes[class_i] = [fid_i]
-                else:
-                    fid_scores_classes[class_i].append(fid_i)
 
             # Save best pt, compare mean.
             if fid_dev <= min(fid_scores):

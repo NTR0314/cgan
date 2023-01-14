@@ -1,9 +1,10 @@
 import os
 import pickle
+from collections import OrderedDict
 
 import numpy as np
-from torch.utils.data import Dataset
 import torch
+from torch.utils.data import Dataset
 
 
 def unpickle(file):
@@ -98,9 +99,16 @@ def load_best_cp_data(model_path, netG, netD):
     tr_d_path = model_path / 'training_data.npz'
 
     # If existing load: best weights & training data
+
+    # Remove dumb prefix if existing
     if os.path.exists(best_cp_d_path) and os.path.exists(best_cp_g_path):
-        netD.load_state_dict(torch.load(best_cp_d_path))
-        netG.load_state_dict(torch.load(best_cp_g_path))
+        net_d_dict = torch.load(best_cp_d_path)
+        net_g_dict = torch.load(best_cp_g_path)
+        net_d_dict_fixed = OrderedDict([(k[len('module.'):], v) for k, v in net_d_dict.items() if 'module.' in k])
+        net_g_dict_fixed = OrderedDict([(k[len('module.'):], v) for k, v in net_g_dict.items() if 'module.' in k])
+
+        netD.load_state_dict(net_d_dict_fixed)
+        netG.load_state_dict(net_g_dict_fixed)
     if os.path.exists(tr_d_path):
         tr_d = np.load(tr_d_path, allow_pickle=True)
         img_list = list(tr_d['img_list'])
@@ -124,4 +132,3 @@ def load_best_cp_data(model_path, netG, netD):
         no_improve_count = 0
 
     return netG, netD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, fid_scores, fid_scores_classes, no_improve_count
-
