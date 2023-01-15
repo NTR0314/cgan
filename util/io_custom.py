@@ -113,24 +113,14 @@ def load_best_cp_data(model_path, netG, netD):
         netG.load_state_dict(net_g_dict_fixed)
     if os.path.exists(tr_d_path):
         tr_d = np.load(tr_d_path, allow_pickle=True)
-        img_list = list(tr_d['img_list'])
-        G_losses = list(tr_d['G_losses'])
-        D_losses = list(tr_d['D_losses'])
-        inc_scores = list(tr_d['inc_scores'])
-        best_epoch = int(tr_d['best_epoch'])
-        start_epoch = int(tr_d['start_epoch'])
-        fid_scores = list(tr_d['fid_scores'])
-        fid_scores_classes = tr_d['fid_scores_classes'].item()
-        no_improve_count = int(tr_d['no_improve_count'])
-    else:
-        img_list = []
-        G_losses = []
-        D_losses = []
-        inc_scores = []
-        best_epoch = 0
-        start_epoch = 0
-        fid_scores = []
-        fid_scores_classes = {}
-        no_improve_count = 0
+        img_list = list(tr_d['img_list']) if 'img_list' in tr_d else []
+        G_losses = list(tr_d['G_losses'])  if 'G_losses' in tr_d else []
+        D_losses = list(tr_d['D_losses']) if 'D_losses' in tr_d else []
+        inc_scores = list(tr_d['inc_scores']) if 'inc_scores' in tr_d else []
+        best_epoch = int(tr_d['best_epoch']) if 'best_epoch' in tr_d else 0
+        start_epoch = int(tr_d['start_epoch']) if 'start_epoch' in tr_d else 0
+        fid_scores = list(tr_d['fid_scores']) if 'fid_scores' in tr_d else []
+        fid_scores_classes = tr_d['fid_scores_classes'].item() if 'fid_scores_classes' in tr_d else {}
+        no_improve_count = int(tr_d['no_improve_count']) if 'no_improve_count' in tr_d else 0
 
     return netG, netD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, fid_scores, fid_scores_classes, no_improve_count
