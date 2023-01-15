@@ -228,4 +228,4 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dat
 
         # Output training stats
         print(f'[{epoch}/{num_epochs}][{i}/{len(dataloader)}]\tLoss_D: {errD.item()}\tLoss_G:'
-              + f'{errG.item()}\tD(x): {D_x}\tD(G(z)): {D_G_z1} / {D_G_z2}\tIS-mean: {is_mean}\tFID: {fid_dev}')
+              + f'{errG.item()}\tD(x): {D_x}\tD(G(z)): {D_G_z1} / {D_G_z2}\tIS-mean: {is_mean}')
