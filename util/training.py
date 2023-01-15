@@ -5,7 +5,6 @@ import os
 import random
 import time
 
-import numpy as np
 import torch
 import torch.optim as optim
 import torch.utils.data
@@ -151,8 +150,19 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
             # Save best pt, compare mean.
             if is_mean >= max(inc_scores, key=lambda x: x[0])[0]:
                 # Save best
-                torch.save(netD.state_dict(), model_path / f'model_weights_netD_best.pth')
-                torch.save(netG.state_dict(), model_path / f'model_weights_netG_best.pth')
+                torch.save({
+                    'img_list': img_list,
+                    'netD_state_dict': netD.state_dict(),
+                    'netG_state_dict': netG.state_dict(),
+                    'optimizer_g_state_dict': optimizerG.state_dict(),
+                    'optimizer_d_state_dict': optimizerD.state_dict(),
+                    'G_losses': G_losses,
+                    'D_losses': D_losses,
+                    'inc_scores': inc_scores,
+                    'start_epoch': start_epoch,
+                    'best_epoch': best_epoch,
+                    'no_improve_count': no_improve_count
+                }, model_path / f'model_best.pth')
                 no_improve_count = 0
             else:
                 no_improve_count += 1
@@ -205,28 +215,21 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
                 break
 
         # Save training data every epoch.
-        print(img_list, G_losses, D_losses, inc_scores, best_epoch, epoch, no_improve_count)
-        np.savez(model_path / f"training_data.npz",
-                 img_list=img_list,
-                 G_losses=G_losses,
-                 D_losses=D_losses,
-                 inc_scores=inc_scores,
-                 best_epoch=best_epoch,
-                 start_epoch=epoch,
-                 #fid_scores=fid_scores,
-                 #fid_scores_classes=fid_scores_classes,
-                 no_improve_count=no_improve_count)
+        torch.save({
+            'img_list': img_list,
+            'netD_state_dict': netD.state_dict(),
+            'netG_state_dict': netG.state_dict(),
+            'optimizer_g_state_dict': optimizerG.state_dict(),
+            'optimizer_d_state_dict': optimizerD.state_dict(),
+            'G_losses': G_losses,
+            'D_losses': D_losses,
+            'inc_scores': inc_scores,
+            'start_epoch': start_epoch,
+            'best_epoch': best_epoch,
+            'no_improve_count': no_improve_count
+        }, model_path / f'model_{epoch}.pth')
 
-        # Save checkpoint every epoch.
-        torch.save(netD.state_dict(), model_path / f'model_weights_netD_{epoch}.pth')
-        torch.save(netG.state_dict(), model_path / f'model_weights_netG_{epoch}.pth')
 
         # Output training stats
         print(f'[{epoch}/{num_epochs}][{i}/{len(dataloader)}]\tLoss_D: {errD.item()}\tLoss_G:'
-              + f'{errG.item()}\tD(x): {D_x}\tD(G(z)): {D_G_z1} / {D_G_z2} - IS-mean: {is_mean} - FID: {fid_dev}')
-
-
-    # Save model after training:
-    # https://pytorch.org/tutorials/beginner/basics/saveloadrun_tutorial.html#save-and-load-the-model
-    torch.save(netD.state_dict(), model_path / f'model_weights_netD_last.pth')
-    torch.save(netG.state_dict(), model_path / f'model_weights_netG_last.pth')
+              + f'{errG.item()}\tD(x): {D_x}\tD(G(z)): {D_G_z1} / {D_G_z2}\tIS-mean: {is_mean}\tFID: {fid_dev}')

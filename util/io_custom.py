@@ -94,16 +94,13 @@ def get_cifar_datasets():
 
 def load_best_cp_data(model_path, netG, netD):
     # Load stuff if existing
-    best_cp_d_path = model_path / 'model_weights_netD_best.pth'
-    best_cp_g_path = model_path / 'model_weights_netG_best.pth'
-    tr_d_path = model_path / 'training_data.npz'
-
-    # If existing load: best weights & training data
+    best_cp_path = model_path / 'model_best.pth'
 
     # Remove dumb prefix if existing
-    if os.path.exists(best_cp_d_path) and os.path.exists(best_cp_g_path):
-        net_d_dict = torch.load(best_cp_d_path)
-        net_g_dict = torch.load(best_cp_g_path)
+    if os.path.exists(best_cp_path):
+        model = torch.load(best_cp_path)
+        net_d_dict = model['netD_state_dict']
+        net_g_dict = model['netG_state_dict']
         # DEBUG
         print(f"\n\n{net_d_dict.keys()=}\n\n")
         net_d_dict_fixed = OrderedDict([(k[len('module.'):], v) if 'module.' in k else (k,v) for k, v in net_d_dict.items()])
@@ -111,16 +108,15 @@ def load_best_cp_data(model_path, netG, netD):
 
         netD.load_state_dict(net_d_dict_fixed)
         netG.load_state_dict(net_g_dict_fixed)
-    if os.path.exists(tr_d_path):
-        tr_d = np.load(tr_d_path, allow_pickle=True)
-        img_list = list(tr_d['img_list']) if 'img_list' in tr_d else []
-        G_losses = list(tr_d['G_losses'])  if 'G_losses' in tr_d else []
-        D_losses = list(tr_d['D_losses']) if 'D_losses' in tr_d else []
-        inc_scores = list(tr_d['inc_scores']) if 'inc_scores' in tr_d else []
-        best_epoch = int(tr_d['best_epoch']) if 'best_epoch' in tr_d else 0
-        start_epoch = int(tr_d['start_epoch']) if 'start_epoch' in tr_d else 0
-        fid_scores = list(tr_d['fid_scores']) if 'fid_scores' in tr_d else []
-        fid_scores_classes = tr_d['fid_scores_classes'].item() if 'fid_scores_classes' in tr_d else {}
-        no_improve_count = int(tr_d['no_improve_count']) if 'no_improve_count' in tr_d else 0
+
+        img_list = model['img_list']
+        G_losses = model['G_losses']
+        D_losses = model['D_losses']
+        inc_scores = model['inc_scores']
+        best_epoch = model['best_epoch']
+        start_epoch = model['start_epoch']
+        fid_scores = model['fid_scores']
+        fid_scores_classes = model['fid_scores_classes']
+        no_improve_count = model['no_improve_count']
 
     return netG, netD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, fid_scores, fid_scores_classes, no_improve_count
