@@ -103,6 +103,11 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--sloppy", action="store_true",
                         help="If this arg is set then a sloppy IS of 50 images will be calculated instead of FID and IS of 1000 images.")
     parser.add_argument("--ngf", help="ngf dim", type=int, default=64)
+    parser.add_argument("--spectral", action="store_true", help="Use Spectral normalization")
+    parser.add_argument("--lrelu", action="store_true", help="Use leaky relu")
+    parser.add_argument("--tconv", action="store_true", help="Use transposed convulation")
+    parser.add_argument("--leastsquare", action="store_true", help="Use least square loss")
+    parser.add_argument("--batchnorm", action="store_true", help="Use batch norm")
     args = parser.parse_args()
     model_path = Path(f"models/{args.model_name}/")
     os.makedirs(model_path, exist_ok=True)
@@ -120,8 +125,8 @@ if __name__ == '__main__':
     residual = True
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(nz=nz, bn=False, tconv=True, residual=residual, lsc=learnable_sc).to(device)
-    netD = Discriminator(sn=False, lrelu=False, residual=residual, lsc=learnable_sc).to(device)
+    netG = Generator(nz=nz, bn=args.batchnorm, tconv=args.tconv, residual=residual, lsc=learnable_sc).to(device)
+    netD = Discriminator(sn=args.spectral, lrelu=args.lrelu, residual=residual, lsc=learnable_sc).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
