@@ -212,8 +212,8 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
                  inc_scores=inc_scores,
                  best_epoch=best_epoch,
                  start_epoch=epoch,
-                 fid_scores=fid_scores,
-                 fid_scores_classes=fid_scores_classes,
+                 #fid_scores=fid_scores,
+                 #fid_scores_classes=fid_scores_classes,
                  no_improve_count=no_improve_count)
 
         # Save checkpoint every epoch.
