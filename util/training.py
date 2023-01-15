@@ -205,6 +205,7 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
                 break
 
         # Save training data every epoch.
+        print(img_list, G_losses, D_losses, inc_scores, best_epoch, epoch, no_improve_count)
         np.savez(model_path / f"training_data.npz",
                  img_list=img_list,
                  G_losses=G_losses,
