@@ -92,7 +92,7 @@ def get_cifar_datasets():
     return train_dataset, test_dataset, dev_dataset, label_names
 
 
-def load_best_cp_data(model_path, netG, netD):
+def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD):
     # Load stuff if existing
     best_cp_path = model_path / 'model_best.pth'
 
@@ -108,6 +108,8 @@ def load_best_cp_data(model_path, netG, netD):
 
         netD.load_state_dict(net_d_dict_fixed)
         netG.load_state_dict(net_g_dict_fixed)
+        optimizerD.load_state_dict(model['optimizerD_state_dict'])
+        optimizerG.load_state_dict(model['optimizerG_state_dict'])
 
         img_list = model['img_list']
         G_losses = model['G_losses']
@@ -115,8 +117,15 @@ def load_best_cp_data(model_path, netG, netD):
         inc_scores = model['inc_scores']
         best_epoch = model['best_epoch']
         start_epoch = model['start_epoch']
-        fid_scores = model['fid_scores']
-        fid_scores_classes = model['fid_scores_classes']
         no_improve_count = model['no_improve_count']
+    else:
+        img_list = []
+        G_losses = []
+        D_losses = []
+        inc_scores = []
+        best_epoch = 0
+        start_epoch = 0
+        no_improve_count = 0
 
-    return netG, netD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, fid_scores, fid_scores_classes, no_improve_count
+
+    return netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, no_improve_count

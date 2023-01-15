@@ -6,7 +6,6 @@ import random
 import time
 
 import torch
-import torch.optim as optim
 import torch.utils.data
 import torchvision.utils as vutils
 from torch import nn
@@ -23,6 +22,7 @@ def weights_init(m):
 
 
 def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train, dataset_dev, device,
+                optimizerG, optimizerD,
                 img_list=[], G_losses=[], D_losses=[], inc_scores=[], fid_scores=[], fid_scores_classes={},
                 best_epoch=0, start_epoch=0, no_improve_count=0, ls_loss=True, sloppy=False):
     # Set random seed for reproducibility
@@ -57,10 +57,6 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr,
     # Establish convention for real and fake labels during training
     real_label = 1.
     fake_label = 0.
-
-    # Setup Adam optimizers for both G and D
-    optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.9))
-    optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.9))
 
     # Lists to keep track of progress
     print("Starting Training Loop...")

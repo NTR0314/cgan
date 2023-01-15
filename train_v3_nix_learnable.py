@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+import torch.optim as optim
 
 import numpy as np
 import torch
@@ -126,8 +127,12 @@ if __name__ == '__main__':
         f.write('\n\n ----- \n\n')
         f.write(str(netD))
 
-    netG, netD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, fid_scores, fid_scores_classes, no_improve_count = load_best_cp_data(
-        model_path, netG, netD)
+    # Setup Adam optimizers for both G and D
+    optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.9))
+    optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.9))
+
+    netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, fid_scores, fid_scores_classes, no_improve_count = load_best_cp_data(
+        model_path, netG, netD, optimizerG, optimizerD)
 
     # Load data
     dataset_train, dataset_test, dataset_dev, label_names = get_cifar_datasets()
