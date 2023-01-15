@@ -21,7 +21,7 @@ def weights_init(m):
         nn.init.constant_(m.bias.data, 0)
 
 
-def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train, dataset_dev, device,
+def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dataset_train, dataset_dev, device,
                 optimizerG, optimizerD,
                 img_list=[], G_losses=[], D_losses=[], inc_scores=[],
                 best_epoch=0, start_epoch=0, no_improve_count=0, ls_loss=True, sloppy=False):

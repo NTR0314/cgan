@@ -138,8 +138,8 @@ if __name__ == '__main__':
     dataset_train, dataset_test, dataset_dev, label_names = get_cifar_datasets()
 
     if args.training:
-        util.training.train_model(model_path, 200, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train,
-                                  dataset_dev, device, img_list, G_losses, D_losses, inc_scores,
+        util.training.train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dataset_train,
+                                  dataset_dev, device, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores,
                                   best_epoch, start_epoch, no_improve_count, ls_loss=False, sloppy=args.sloppy)
 
     # Generate images if flag is set.
