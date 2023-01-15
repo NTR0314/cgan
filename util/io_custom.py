@@ -108,8 +108,8 @@ def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD):
 
         netD.load_state_dict(net_d_dict_fixed)
         netG.load_state_dict(net_g_dict_fixed)
-        optimizerD.load_state_dict(model['optimizerD_state_dict'])
-        optimizerG.load_state_dict(model['optimizerG_state_dict'])
+        optimizerD.load_state_dict(model['optimizer_d_state_dict'])
+        optimizerG.load_state_dict(model['optimizer_g_state_dict'])
 
         img_list = model['img_list']
         G_losses = model['G_losses']
