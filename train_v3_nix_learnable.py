@@ -131,7 +131,7 @@ if __name__ == '__main__':
     optimizerD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, 0.9))
     optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.9))
 
-    netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, fid_scores, fid_scores_classes, no_improve_count = load_best_cp_data(
+    netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, no_improve_count = load_best_cp_data(
         model_path, netG, netD, optimizerG, optimizerD)
 
     # Load data
@@ -139,8 +139,7 @@ if __name__ == '__main__':
 
     if args.training:
         util.training.train_model(model_path, 200, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train,
-                                  dataset_dev, device, img_list, G_losses, D_losses, inc_scores, fid_scores,
-                                  fid_scores_classes,
+                                  dataset_dev, device, img_list, G_losses, D_losses, inc_scores,
                                   best_epoch, start_epoch, no_improve_count, ls_loss=False, sloppy=args.sloppy)
 
     # Generate images if flag is set.

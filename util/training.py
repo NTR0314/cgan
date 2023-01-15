@@ -23,7 +23,7 @@ def weights_init(m):
 
 def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, lr, beta1, dataset_train, dataset_dev, device,
                 optimizerG, optimizerD,
-                img_list=[], G_losses=[], D_losses=[], inc_scores=[], fid_scores=[], fid_scores_classes={},
+                img_list=[], G_losses=[], D_losses=[], inc_scores=[],
                 best_epoch=0, start_epoch=0, no_improve_count=0, ls_loss=True, sloppy=False):
     # Set random seed for reproducibility
     manual_seed = 1337
