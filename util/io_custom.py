@@ -55,37 +55,36 @@ def get_cifar_datasets():
 
     train_dataset = CIFARDataset(train_batches_data, train_batches_label)
 
-    class_imgs = [[] for i in range(10)]
     class_ctr = [0] * 10
-    dev_set_imgs = torch.empty(0)
-    dev_set_labels = torch.empty(0)
+    dev_set_imgs = [torch.empty(0) for _ in range(10)]
+    dev_set_labels = [torch.empty(0) for _ in range(10)]
     all_done = False
     for image, label in zip(test_batch_data, test_batch_label):
         if all_done:
             break
         all_done = True
         for i in range(10):
-            if class_ctr[i] < 200:
+            if class_ctr[i] < 100:
                 all_done = False
             if label == i:
                 if class_ctr[i] < 100:
-                    class_imgs[i].append((image, label))
-                    class_ctr[i] += 1
-                    break
-                elif class_ctr[i] < 200:
-                    if dev_set_imgs.numel() == 0 and dev_set_labels.numel() == 0:
-                        dev_set_imgs = image.unsqueeze(0)
-                        dev_set_labels = label.unsqueeze(0)
+                    if dev_set_imgs[i].numel() == 0 and dev_set_labels[i].numel() == 0:
+                        dev_set_imgs[i] = image.unsqueeze(0)
+                        dev_set_labels[i] = label.unsqueeze(0)
                         break
                     else:
-                        dev_set_imgs = torch.cat((dev_set_imgs, image.unsqueeze(0)), 0)
-                        dev_set_labels = torch.cat((dev_set_labels, label.unsqueeze(0)), 0)
+                        dev_set_imgs[i] = torch.cat((dev_set_imgs[i], image.unsqueeze(0)), 0)
+                        dev_set_labels[i] = torch.cat((dev_set_labels[i], label.unsqueeze(0)), 0)
                         class_ctr[i] += 1
                         break
 
     dev_dataset = CIFARDataset(dev_set_imgs[:-1], dev_set_labels[:-1])
-    test_set_images = torch.stack([x[0] for y in class_imgs for x in y])
-    test_set_labels = torch.stack([x[1] for y in class_imgs for x in y])
+    test_set_images = torch.stack(dev_set_imgs)
+    test_set_labels = torch.stack(dev_set_labels)
+
+    for x in test_set_labels:
+        print(x)
+
     # This is sorted 100 labels per class 1000 in total
     test_dataset = CIFARDataset(test_set_images, test_set_labels)
 
