@@ -152,15 +152,6 @@ if __name__ == '__main__':
         vis.gen_plots(img_list, G_losses, D_losses, model_path, model_name=args.model_name)
 
     if not args.no_last_inception:
-        # Save Inception Sore and FID (Frechet Inception Distance) of best checkpoint
-        # Load best CP for last FID score
-        best_cp_d_path = model_path / 'model_weights_netD_best.pth'
-        best_cp_g_path = model_path / 'model_weights_netG_best.pth'
-
-        if os.path.exists(best_cp_d_path) and os.path.exists(best_cp_g_path):
-            netD.load_state_dict(torch.load(best_cp_d_path))
-            netG.load_state_dict(torch.load(best_cp_g_path))
-
         reals = torch.stack([data['feat'] for data in dataset_dev])
         gen_imgs = me.gen_images(netG, device, nz)
         test_fid = me.FID_torchmetrics(gen_imgs, reals)

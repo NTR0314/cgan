@@ -82,9 +82,6 @@ def get_cifar_datasets():
     test_set_images = torch.stack(dev_set_imgs)
     test_set_labels = torch.stack(dev_set_labels)
 
-    for x in test_set_labels:
-        print(x)
-
     # This is sorted 100 labels per class 1000 in total
     test_dataset = CIFARDataset(test_set_images, test_set_labels)
 
