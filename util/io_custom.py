@@ -117,6 +117,7 @@ def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD):
         inc_scores = model['inc_scores']
         best_epoch = model['best_epoch']
         start_epoch = model['start_epoch']
+        print(f"loaded start epoch is {start_epoch}")
         no_improve_count = model['no_improve_count']
     else:
         img_list = []
