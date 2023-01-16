@@ -162,7 +162,8 @@ if __name__ == '__main__':
         test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
 
         # Save best scores
-        with open(model_path / 'final_inception_score.txt', 'w+') as f:
+        with open(model_path / 'final_inception_score_best.txt', 'w+') as f:
+            f.write(f"Best epoch was: {best_epoch}\n")
             f.write(f"Inception scores torchmetrics. ('best' cp) Mean: {test_is_mean}, std: {test_is_std}\n")
             f.write(f"FID-torchmetrics: (best cp) {test_fid}\n")
             # Calc FID score for each class
@@ -185,7 +186,7 @@ if __name__ == '__main__':
     test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
 
     # Save best scores
-    with open(model_path / 'final_inception_score.txt', 'w+') as f:
+    with open(model_path / 'final_inception_score_last.txt', 'w+') as f:
         f.write(f"Inception scores torchmetrics. ('last' cp) Mean: {test_is_mean}, std: {test_is_std}\n")
         f.write(f"FID-torchmetrics: (last cp) {test_fid}\n")
         # Calc FID score for each class
