@@ -138,7 +138,7 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dat
 
         if sloppy:
             # Calc IS/FID/class-FID for each Epoch
-            gen_imgs = me.gen_images(netG, device, nz, num_img_per_class=5)  # Generate 1000 random images from generator
+            gen_imgs = me.gen_images(netG, device, nz, num_img_per_class=50)
             # Calc IS
             is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
             inc_scores.append((is_mean, is_std))

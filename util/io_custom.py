@@ -92,9 +92,15 @@ def get_cifar_datasets():
     return train_dataset, test_dataset, label_names
 
 
-def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD):
+def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD, last=False):
     # Load stuff if existing
-    best_cp_path = model_path / 'model_best.pth'
+    if not last:
+        best_cp_path = model_path / 'model_best.pth'
+    else:
+        # Find maximum
+        files = os.listdir(model_path)
+        max_cp = max([int(x[len('model_'):-len('.pth')]) for x in files if 'model' in x and 'best' not in x])
+        best_cp_path = model_path / f'model_{max_cp}.pth'
 
     # Remove dumb prefix if existing
     if os.path.exists(best_cp_path):

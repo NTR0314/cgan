@@ -153,7 +153,7 @@ if __name__ == '__main__':
         vis.gen_plots(img_list, G_losses, D_losses, model_path, model_name=args.model_name)
 
     if not args.no_last_inception:
-        print("Calculating last Inception score")
+        print("Calculating last Inception score for best cp")
         reals = torch.stack([data['feat'] for data in dataset_test])
         real_labels = torch.stack([data['label'] for data in dataset_test])
         print(reals.shape)
@@ -163,12 +163,35 @@ if __name__ == '__main__':
 
         # Save best scores
         with open(model_path / 'final_inception_score.txt', 'w+') as f:
-            f.write(f"Inception scores torchmetrics. Mean: {test_is_mean}, std: {test_is_std}\n")
-            f.write(f"FID-torchmetrics: {test_fid}\n")
+            f.write(f"Inception scores torchmetrics. ('best' cp) Mean: {test_is_mean}, std: {test_is_std}\n")
+            f.write(f"FID-torchmetrics: (best cp) {test_fid}\n")
             # Calc FID score for each class
             for class_i in range(10):
                 gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
                 for x in real_labels[class_i * 100:(class_i + 1) * 100]:
-                    print(x)
+                    print(f"real image label = {x}, current eval class = {class_i}")
                 fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
-                f.write(f"FID-Class {label_names[class_i].decode()}: {fid_i}\n")
+                f.write(f"FID-Class (best cp) {label_names[class_i].decode()}: {fid_i}\n")
+
+    netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, no_improve_count = load_best_cp_data(
+        model_path, netG, netD, optimizerG, optimizerD, last=True)
+
+    print("Calculating last Inception score for last cp")
+    reals = torch.stack([data['feat'] for data in dataset_test])
+    real_labels = torch.stack([data['label'] for data in dataset_test])
+    print(reals.shape)
+    gen_imgs = me.gen_images(netG, device, nz)
+    test_fid = me.FID_torchmetrics(gen_imgs, reals)
+    test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
+
+    # Save best scores
+    with open(model_path / 'final_inception_score.txt', 'w+') as f:
+        f.write(f"Inception scores torchmetrics. ('last' cp) Mean: {test_is_mean}, std: {test_is_std}\n")
+        f.write(f"FID-torchmetrics: (last cp) {test_fid}\n")
+        # Calc FID score for each class
+        for class_i in range(10):
+            gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
+            for x in real_labels[class_i * 100:(class_i + 1) * 100]:
+                print(f"real image label = {x}, current eval class = {class_i}")
+            fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
+            f.write(f"FID-Class (last cp) {label_names[class_i].decode()}: {fid_i}\n")
