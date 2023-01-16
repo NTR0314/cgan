@@ -164,9 +164,9 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dat
                 no_improve_count += 1
 
             # Stop if not improvement after 15 epochs
-            if no_improve_count >= 15:
-                print("No improvements for 15 epochs. Breaking train loop")
-                break
+            # if no_improve_count >= 15:
+            #     print("No improvements for 15 epochs. Breaking train loop")
+            #     break
         else:
             # Calc IS/FID/class-FID for each Epoch
             gen_imgs = me.gen_images(netG, device, nz)  # Generate 1000 random images from generator
