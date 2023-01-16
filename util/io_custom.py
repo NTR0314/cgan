@@ -64,28 +64,32 @@ def get_cifar_datasets():
             break
         all_done = True
         for i in range(10):
-            if class_ctr[i] < 100:
+            if class_ctr[i] < 99:
                 all_done = False
             if label == i:
-                if class_ctr[i] < 100:
+                if class_ctr[i] < 99:
                     if dev_set_imgs[i].numel() == 0 and dev_set_labels[i].numel() == 0:
                         dev_set_imgs[i] = image.unsqueeze(0)
                         dev_set_labels[i] = label.unsqueeze(0)
                         break
                     else:
+                        print(f"image shape: {image.shape}")
                         dev_set_imgs[i] = torch.cat((dev_set_imgs[i], image.unsqueeze(0)), 0)
                         dev_set_labels[i] = torch.cat((dev_set_labels[i], label.unsqueeze(0)), 0)
                         class_ctr[i] += 1
                         break
 
-    dev_dataset = CIFARDataset(dev_set_imgs[:-1], dev_set_labels[:-1])
-    test_set_images = torch.stack(dev_set_imgs)
-    test_set_labels = torch.stack(dev_set_labels)
+    print(dev_set_imgs[i].shape)
+    for i in range(10):
+        dev_set_imgs[i] = dev_set_imgs[i].squeeze()
+    test_set_images = torch.cat(dev_set_imgs)
+    test_set_labels = torch.cat(dev_set_labels)
+    print(test_set_images.shape)
 
     # This is sorted 100 labels per class 1000 in total
     test_dataset = CIFARDataset(test_set_images, test_set_labels)
 
-    return train_dataset, test_dataset, dev_dataset, label_names
+    return train_dataset, test_dataset, label_names
 
 
 def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD):

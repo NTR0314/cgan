@@ -140,7 +140,8 @@ if __name__ == '__main__':
         model_path, netG, netD, optimizerG, optimizerD)
 
     # Load data
-    dataset_train, dataset_test, dataset_dev, label_names = get_cifar_datasets()
+    print("Loading Data")
+    dataset_train, dataset_test, label_names = get_cifar_datasets()
 
     if args.training:
         util.training.train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dataset_train,
@@ -152,7 +153,9 @@ if __name__ == '__main__':
         vis.gen_plots(img_list, G_losses, D_losses, model_path, model_name=args.model_name)
 
     if not args.no_last_inception:
-        reals = torch.stack([data['feat'] for data in dataset_dev])
+        print("Calculating last Inception score")
+        reals = torch.stack([data['feat'] for data in dataset_test])
+        print(reals.shape)
         gen_imgs = me.gen_images(netG, device, nz)
         test_fid = me.FID_torchmetrics(gen_imgs, reals)
         test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
