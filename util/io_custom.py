@@ -91,6 +91,36 @@ def get_cifar_datasets():
 
     return train_dataset, test_dataset, label_names
 
+def get_cifar_datasets_test_1000():
+    test_batch = unpickle("cifar-10-batches-py/test_batch")
+    test_batch_data = torch.tensor(test_batch[b'data'])
+    test_batch_len = test_batch_data.shape[0]
+    test_batch_data = (torch.reshape(test_batch_data, (test_batch_len, 3, 32, 32)) - 127.5) / 127.5
+    test_batch_label = torch.tensor(test_batch[b'labels'])
+
+    dev_set_imgs = [torch.empty(0) for _ in range(10)]
+    dev_set_labels = [torch.empty(0) for _ in range(10)]
+    for image, label in zip(test_batch_data, test_batch_label):
+        for i in range(10):
+            if label == i:
+                if dev_set_imgs[i].numel() == 0 and dev_set_labels[i].numel() == 0:
+                    dev_set_imgs[i] = image.unsqueeze(0)
+                    dev_set_labels[i] = label.unsqueeze(0)
+                    break
+                else:
+                    dev_set_imgs[i] = torch.cat((dev_set_imgs[i], image.unsqueeze(0)), 0)
+                    dev_set_labels[i] = torch.cat((dev_set_labels[i], label.unsqueeze(0)), 0)
+                    break
+
+    for i in range(10):
+        dev_set_imgs[i] = dev_set_imgs[i].squeeze()
+    test_set_images = torch.cat(dev_set_imgs)
+    test_set_labels = torch.cat(dev_set_labels)
+
+    # This is sorted 1000 labels per class 10000 in total
+    test_dataset = CIFARDataset(test_set_images, test_set_labels)
+
+    return test_dataset
 
 def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD, last=False):
     # Load stuff if existing
