@@ -52,7 +52,10 @@ class DiscriminatorBlock(nn.Module):
         if self.dof:
             x = self.do(x)
 
-        return x + residual
+        if self.residual:
+            return x + residual
+        else:
+            return x
 
 
 class GeneratorBlock(nn.Module):
