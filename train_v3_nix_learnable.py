@@ -15,16 +15,16 @@ from util.architecture import GeneratorBlock, DiscriminatorBlock, UpsampleConv
 
 
 class Generator(nn.Module):
-    def __init__(self, nz, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True, emb=False):
+    def __init__(self, nz, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True, use_emb=False):
         super(Generator, self).__init__()
         self.ngf = ngf
         self.tconv = tconv
         self.bn = bn
-        if not self.emb:
-            self.linear = nn.Linear(nz + 10, 4 ** 2 * ngf)
-        else:
-            # embedding of 10 classes to 50 feature size
-            self.linear = nn.Embedding(10, 50)
+        self.linear = nn.Linear(nz + 10, 4 ** 2 * ngf)
+        self.use_emb = use_emb
+        if self.use_emb:
+            self.emb_layer = nn.Embedding(10, 50)
+            self.linear = nn.Linear(nz + 50, 4 ** 2 * ngf)
 
 
         self.gb1 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc)
@@ -37,11 +37,14 @@ class Generator(nn.Module):
 
     def forward(self, input_image, input_label):
         input_label = input_label.to(torch.int64)
-        # print(input_image.shape, input_label.shape, input_label.dtype)
+        # squeeze noise b x z x 1 x 1 to b x z
         input_image = input_image.squeeze(dim=2).squeeze(dim=2)
-        input_label = F.one_hot(input_label, num_classes=10)
-        # print(input_image.shape, input_label.shape, input_label.dtype)
-        x = torch.cat((input_image, input_label), dim=1)
+        if not self.use_emb:
+            input_label = F.one_hot(input_label, num_classes=10)
+            x = torch.cat((input_image, input_label), dim=1)
+        else:
+            label_emb = self.emb_layer(input_label)
+            x = torch.cat((input_image, label_emb), dim=1)
         # B x nz + 10
         x = self.linear(x)
         # B x ngf * 4 * 4
@@ -60,7 +63,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10, residual=True, lsc=True):
+    def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10, residual=True, lsc=True, use_emb=False):
         super(Discriminator, self).__init__()
 
         self.sn = sn
@@ -69,8 +72,13 @@ class Discriminator(nn.Module):
         self.d2 = DiscriminatorBlock(ndf, ndf, down_sample=True, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
         self.d3 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
         self.d4 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
+        self.use_emb = use_emb
+        self.emb_layer = torch.nn.Embedding(10, 50)
 
-        self.emb = nn.Linear(num_classes, ndf)
+        if not self.use_emb:
+            self.emb = nn.Linear(num_classes, ndf)
+        else:
+            self.emb = nn.Linear(50, ndf)
         if self.sn:
             self.emb = nn.utils.spectral_norm(self.emb)
         self.ll = nn.Linear(ndf, 1)
@@ -78,18 +86,21 @@ class Discriminator(nn.Module):
             self.ll = nn.utils.spectral_norm(self.ll)
 
     def forward(self, x, y: torch.Tensor):
-        # One hot of labels \in [0, 9]
-        oh = F.one_hot(y.long(), num_classes=self.num_classes).float()
-
         x = self.d1(x)
         x = self.d2(x)
         x = self.d3(x)
         x = self.d4(x)  # b x ndf x 8 x 8
         x = torch.sum(x, (2, 3))  # b x ndf
 
-        #        print(oh.shape)
-        #        print(self.emb(oh).shape)
-        proj = torch.sum(self.emb(oh) * x, 1, keepdim=True)  # b x 1
+        if self.use_emb:
+            emb_label = self.emb_layer(y.long())
+            emb_label = self.emb(emb_label)
+        else:
+            oh = F.one_hot(y.long(), num_classes=self.num_classes).float()
+            emb_label = self.emb(oh)
+
+
+        proj = torch.sum(emb_label * x, 1, keepdim=True)  # b x 1
         lin = self.ll(x)
 
         return nn.Sigmoid()(proj + lin)
