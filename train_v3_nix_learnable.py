@@ -126,7 +126,7 @@ if __name__ == '__main__':
     parser.add_argument("--batchnorm", action="store_true", help="Use batch norm")
     parser.add_argument("--embedding", action="store_true", help="Use embedding matrix")
     parser.add_argument("--noresidual", action="store_true", help="don't use residual path")
-    parser.add_argument("--1kclasstest", action="store_true", help="use 1k images for each class instead of 100")
+    parser.add_argument("--thousand_fid", action="store_true", help="use 1k images for each class instead of 100")
     args = parser.parse_args()
     model_path = Path(f"models/{args.model_name}/")
     os.makedirs(model_path, exist_ok=True)
@@ -179,25 +179,26 @@ if __name__ == '__main__':
         test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
 
         # Save best scores
-        with open(model_path / 'final_inception_score_best.txt', 'w+') as f:
-            f.write(f"Best epoch was: {best_epoch}\n")
-            f.write(f"Inception scores torchmetrics. ('best' cp) Mean: {test_is_mean}, std: {test_is_std}\n")
-            f.write(f"FID-torchmetrics: (best cp) {test_fid}\n")
-            # Calc FID score for each class
-            for class_i in range(10):
-                gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
-                for x in real_labels[class_i * 100:(class_i + 1) * 100]:
-                    print(f"real image label = {x}, current eval class = {class_i}")
-                fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
-                f.write(f"FID-Class (best cp) {label_names[class_i].decode()}: {fid_i}\n")
-            dataset_test = util.io_custom.get_cifar_datasets_test_1000()
-            reals = torch.stack([data['feat'] for data in dataset_test])
-            for class_i in range(10):
-                gen_imgs_class = me.gen_images_class(netG, device, nz, 1000, class_i)
-                for x in real_labels[class_i * 1000:(class_i + 1) * 1000]:
-                    print(f"real image label = {x}, current eval class = {class_i}")
-                fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 1000:(class_i + 1) * 1000])
-                f.write(f"FID-Class-1000 (best cp) {label_names[class_i].decode()}: {fid_i}\n")
+        if not args.thousand_fid:
+            with open(model_path / 'final_inception_score_best.txt', 'w+') as f:
+                f.write(f"Best epoch was: {best_epoch}\n")
+                f.write(f"Inception scores torchmetrics. ('best' cp) Mean: {test_is_mean}, std: {test_is_std}\n")
+                f.write(f"FID-torchmetrics: (best cp) {test_fid}\n")
+                # Calc FID score for each class
+                for class_i in range(10):
+                    gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
+                    for x in real_labels[class_i * 100:(class_i + 1) * 100]:
+                        print(f"real image label = {x}, current eval class = {class_i}")
+                    fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
+                    f.write(f"FID-Class (best cp) {label_names[class_i].decode()}: {fid_i}\n")
+                dataset_test = util.io_custom.get_cifar_datasets_test_1000()
+                reals = torch.stack([data['feat'] for data in dataset_test])
+                for class_i in range(10):
+                    gen_imgs_class = me.gen_images_class(netG, device, nz, 1000, class_i)
+                    for x in real_labels[class_i * 1000:(class_i + 1) * 1000]:
+                        print(f"real image label = {x}, current eval class = {class_i}")
+                    fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 1000:(class_i + 1) * 1000])
+                    f.write(f"FID-Class-1000 (best cp) {label_names[class_i].decode()}: {fid_i}\n")
 
         # netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, no_improve_count = load_best_cp_data(
         #     model_path, netG, netD, optimizerG, optimizerD, last=True)
