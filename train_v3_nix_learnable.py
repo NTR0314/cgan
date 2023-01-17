@@ -15,12 +15,17 @@ from util.architecture import GeneratorBlock, DiscriminatorBlock, UpsampleConv
 
 
 class Generator(nn.Module):
-    def __init__(self, nz, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True):
+    def __init__(self, nz, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True, emb=False):
         super(Generator, self).__init__()
         self.ngf = ngf
         self.tconv = tconv
         self.bn = bn
-        self.linear = nn.Linear(nz + 10, 4 ** 2 * ngf)
+        if not self.emb:
+            self.linear = nn.Linear(nz + 10, 4 ** 2 * ngf)
+        else:
+            # embedding of 10 classes to 50 feature size
+            self.linear = nn.Embedding(10, 50)
+
 
         self.gb1 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc)
         self.gb2 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc)
@@ -108,6 +113,8 @@ if __name__ == '__main__':
     parser.add_argument("--tconv", action="store_true", help="Use transposed convulation")
     parser.add_argument("--leastsquare", action="store_true", help="Use least square loss")
     parser.add_argument("--batchnorm", action="store_true", help="Use batch norm")
+    parser.add_argument("--embedding", action="store_true", help="Use embedding matrix")
+    parser.add_argument("--noresidual", action="store_true", help="don't use residual path")
     args = parser.parse_args()
     model_path = Path(f"models/{args.model_name}/")
     os.makedirs(model_path, exist_ok=True)
@@ -122,7 +129,7 @@ if __name__ == '__main__':
     num_epochs = 200
     ngf = args.ngf
     learnable_sc = True
-    residual = True
+    residual = not args.noresidual
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     netG = Generator(nz=nz, bn=args.batchnorm, tconv=args.tconv, residual=residual, lsc=learnable_sc).to(device)
@@ -149,8 +156,6 @@ if __name__ == '__main__':
                                   best_epoch, start_epoch, no_improve_count, ls_loss=False, sloppy=args.sloppy)
 
     # Generate images if flag is set.
-    if args.gen_images:
-        vis.gen_plots(img_list, G_losses, D_losses, model_path, model_name=args.model_name)
 
     if not args.no_last_inception:
         print("Calculating last Inception score for best cp")
@@ -174,25 +179,32 @@ if __name__ == '__main__':
                 fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
                 f.write(f"FID-Class (best cp) {label_names[class_i].decode()}: {fid_i}\n")
 
+        netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, no_improve_count = load_best_cp_data(
+            model_path, netG, netD, optimizerG, optimizerD, last=True)
+
+        print("Calculating last Inception score for last cp")
+        reals = torch.stack([data['feat'] for data in dataset_test])
+        real_labels = torch.stack([data['label'] for data in dataset_test])
+        print(reals.shape)
+        gen_imgs = me.gen_images(netG, device, nz)
+        test_fid = me.FID_torchmetrics(gen_imgs, reals)
+        test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
+
+        # Save best scores
+        with open(model_path / 'final_inception_score_last.txt', 'w+') as f:
+            f.write(f"Inception scores torchmetrics. ('last' cp) Mean: {test_is_mean}, std: {test_is_std}\n")
+            f.write(f"FID-torchmetrics: (last cp) {test_fid}\n")
+            # Calc FID score for each class
+            for class_i in range(10):
+                gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
+                for x in real_labels[class_i * 100:(class_i + 1) * 100]:
+                    print(f"real image label = {x}, current eval class = {class_i}")
+                fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
+                f.write(f"FID-Class (last cp) {label_names[class_i].decode()}: {fid_i}\n")
+
+
     netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, no_improve_count = load_best_cp_data(
         model_path, netG, netD, optimizerG, optimizerD, last=True)
 
-    print("Calculating last Inception score for last cp")
-    reals = torch.stack([data['feat'] for data in dataset_test])
-    real_labels = torch.stack([data['label'] for data in dataset_test])
-    print(reals.shape)
-    gen_imgs = me.gen_images(netG, device, nz)
-    test_fid = me.FID_torchmetrics(gen_imgs, reals)
-    test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
-
-    # Save best scores
-    with open(model_path / 'final_inception_score_last.txt', 'w+') as f:
-        f.write(f"Inception scores torchmetrics. ('last' cp) Mean: {test_is_mean}, std: {test_is_std}\n")
-        f.write(f"FID-torchmetrics: (last cp) {test_fid}\n")
-        # Calc FID score for each class
-        for class_i in range(10):
-            gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
-            for x in real_labels[class_i * 100:(class_i + 1) * 100]:
-                print(f"real image label = {x}, current eval class = {class_i}")
-            fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
-            f.write(f"FID-Class (last cp) {label_names[class_i].decode()}: {fid_i}\n")
+    if args.gen_images:
+        vis.gen_plots(img_list, G_losses, D_losses, model_path, model_name=args.model_name)

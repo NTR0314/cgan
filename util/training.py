@@ -142,6 +142,7 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dat
             # Calc IS
             is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
             inc_scores.append((is_mean, is_std))
+            best_epoch = epoch
 
             # Save best pt, compare mean.
             if is_mean >= max(inc_scores, key=lambda x: x[0])[0]:
@@ -155,7 +156,7 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dat
                     'G_losses': G_losses,
                     'D_losses': D_losses,
                     'inc_scores': inc_scores,
-                    'start_epoch': start_epoch,
+                    'start_epoch': epoch,
                     'best_epoch': best_epoch,
                     'no_improve_count': no_improve_count
                 }, model_path / f'model_best.pth')
@@ -220,7 +221,7 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dat
             'G_losses': G_losses,
             'D_losses': D_losses,
             'inc_scores': inc_scores,
-            'start_epoch': start_epoch,
+            'start_epoch': epoch,
             'best_epoch': best_epoch,
             'no_improve_count': no_improve_count
         }, model_path / f'model_{epoch}.pth')
