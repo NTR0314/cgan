@@ -73,7 +73,8 @@ class Discriminator(nn.Module):
         self.d3 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
         self.d4 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
         self.use_emb = use_emb
-        self.emb_layer = torch.nn.Embedding(10, 50)
+        if self.use_emb:
+            self.emb_layer = torch.nn.Embedding(10, 50)
 
         if not self.use_emb:
             self.emb = nn.Linear(num_classes, ndf)
