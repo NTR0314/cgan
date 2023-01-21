@@ -63,10 +63,11 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10, residual=True, lsc=True, use_emb=False):
+    def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10, residual=True, lsc=True, use_emb=False, leastsquare=False):
         super(Discriminator, self).__init__()
 
         self.sn = sn
+        self.leastsquare = leastsquare
         self.num_classes = num_classes
         self.d1 = DiscriminatorBlock(nc, ndf, suppres_first_relu=True, down_sample=True, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
         self.d2 = DiscriminatorBlock(ndf, ndf, down_sample=True, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
@@ -104,7 +105,8 @@ class Discriminator(nn.Module):
         proj = torch.sum(emb_label * x, 1, keepdim=True)  # b x 1
         lin = self.ll(x)
 
-        if not self.sn:
+        # LS GAN does not use Sigmoid
+        if not self.leastsquare:
             return nn.Sigmoid()(proj + lin)
         else:
             return proj + lin
