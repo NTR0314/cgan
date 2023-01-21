@@ -15,11 +15,11 @@ from util.architecture import GeneratorBlock, DiscriminatorBlock, UpsampleConv
 
 
 class Generator(nn.Module):
-    def __init__(self, nz, ngf=64, nc=3, bn=True, tconv=True, residual=True, lsc=True, use_emb=False):
+    def __init__(self, nz, ngf=64, nc=3, batchnorm=True, tconv=True, residual=True, lsc=True, use_emb=False):
         super(Generator, self).__init__()
         self.ngf = ngf
         self.tconv = tconv
-        self.bn = bn
+        self.batchnorm = batchnorm
         self.linear = nn.Linear(nz + 10, 4 ** 2 * ngf)
         self.use_emb = use_emb
         if self.use_emb:
@@ -27,11 +27,11 @@ class Generator(nn.Module):
             self.linear = nn.Linear(nz + 50, 4 ** 2 * ngf)
 
 
-        self.gb1 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc)
-        self.gb2 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc)
-        self.gb3 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc)
+        self.gb1 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc, batchnorm=self.batchnorm)
+        self.gb2 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc, batchnorm=self.batchnorm)
+        self.gb3 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc, batchnorm=self.batchnorm)
 
-        if bn:
+        if batchnorm:
             self.bn1 = nn.BatchNorm2d(ngf)
         self.c1 = nn.Conv2d(ngf, nc, kernel_size=1, padding=0)
 
@@ -53,7 +53,7 @@ class Generator(nn.Module):
         x = self.gb1(x)
         x = self.gb2(x)
         x = self.gb3(x)
-        if self.bn:
+        if self.batchnorm:
             x = self.bn1(x)
         x = nn.ReLU()(x)
         x = self.c1(x)
@@ -104,7 +104,10 @@ class Discriminator(nn.Module):
         proj = torch.sum(emb_label * x, 1, keepdim=True)  # b x 1
         lin = self.ll(x)
 
-        return nn.Sigmoid()(proj + lin)
+        if not self.sn:
+            return nn.Sigmoid()(proj + lin)
+        else:
+            return proj + lin
 
 
 if __name__ == '__main__':
@@ -145,7 +148,7 @@ if __name__ == '__main__':
     residual = not args.noresidual
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(nz=nz, bn=args.batchnorm, tconv=args.tconv, residual=residual, lsc=learnable_sc).to(device)
+    netG = Generator(nz=nz, batchnorm=args.batchnorm, tconv=args.tconv, residual=residual, lsc=learnable_sc).to(device)
     netD = Discriminator(sn=args.spectral, lrelu=args.lrelu, residual=residual, lsc=learnable_sc).to(device)
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))

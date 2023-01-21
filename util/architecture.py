@@ -59,17 +59,18 @@ class DiscriminatorBlock(nn.Module):
 
 
 class GeneratorBlock(nn.Module):
-    def __init__(self, ngf, bn=True, tconv=True, residual=True, do=False, learnable_sc=True):
+    def __init__(self, ngf, batchnorm=True, tconv=True, residual=True, do=False, learnable_sc=True):
         super().__init__()
-        self.bn = bn
+        self.batchnorm = batchnorm
         self.tconv = tconv
         self.residual = residual
         self.learnable_sc = learnable_sc
 
         self.tconv1 = nn.ConvTranspose2d(ngf, ngf, 4, 2, 1)
 
-        self.bn1 = nn.BatchNorm2d(ngf)
-        self.bn2 = nn.BatchNorm2d(ngf)
+        if self.batchnorm:
+            self.bn1 = nn.BatchNorm2d(ngf)
+            self.bn2 = nn.BatchNorm2d(ngf)
 
         self.c1 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
         self.c2 = nn.Conv2d(ngf, ngf, kernel_size=3, padding=1)
@@ -80,14 +81,14 @@ class GeneratorBlock(nn.Module):
 
     def forward(self, x):
         orig = x
-        if self.bn:
+        if self.batchnorm:
             x = self.bn1(x)
         x = nn.ReLU()(x)
         if self.tconv:
             x = self.tconv1(x)
         else:
             x = self.c1(nn.Upsample(scale_factor=2)(x))
-        if self.bn:
+        if self.batchnorm:
             x = self.bn2(x)
         x = nn.ReLU()(x)
         x = self.c2(x)
