@@ -105,7 +105,7 @@ class Discriminator(nn.Module):
         proj = torch.sum(emb_label * x, 1, keepdim=True)  # b x 1
         lin = self.ll(x)
 
-        # LS GAN does not use Sigmoid
+        # LS GAN does not use Sigmoid uses logits
         if not self.leastsquare:
             return nn.Sigmoid()(proj + lin)
         else:
@@ -152,6 +152,11 @@ if __name__ == '__main__':
 
     netG = Generator(nz=nz, batchnorm=args.batchnorm, tconv=args.tconv, residual=residual, lsc=learnable_sc).to(device)
     netD = Discriminator(sn=args.spectral, lrelu=args.lrelu, residual=residual, lsc=learnable_sc).to(device)
+
+    # Print number of params
+    print("Generator trainable weights: ", sum(p.numel() for p in netG.parameters() if p.requires_grad))
+    print("Discriminator trainable weights: ", sum(p.numel() for p in netD.parameters() if p.requires_grad))
+
     with open(model_path / 'architecture.txt', 'w+') as f:
         f.write(str(netG))
         f.write('\n\n ----- \n\n')
