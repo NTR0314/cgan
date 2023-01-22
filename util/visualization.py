@@ -15,6 +15,11 @@ def gen_plots(img_list, G_losses, D_losses, base_path, model_name=""):
     writer = animation.FFMpegWriter(fps=1, metadata=dict(artist='Me'), bitrate=1800)
     ani.save(base_path / 'progress.mp4', writer=writer)
 
+    plt.figure(figsize= (8, 8))
+    print(img_list[-1].shape)
+    plt.imshow(np.transpose(img_list[-1], (1, 2, 0)))
+    plt.savefig(base_path / 'last_img.png')
+
     # Plot losses
     plt.figure(figsize=(10, 5))
     plt.title(f"Generator and Discriminator Loss During Training ({model_name})")

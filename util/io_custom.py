@@ -164,5 +164,7 @@ def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD, last=False
         start_epoch = 0
         no_improve_count = 0
 
+    print(f"Loaded epoch nr {len(inc_scores)}")
+
 
     return netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, no_improve_count
