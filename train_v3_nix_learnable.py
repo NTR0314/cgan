@@ -150,8 +150,8 @@ if __name__ == '__main__':
     residual = not args.noresidual
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(nz=nz, batchnorm=args.batchnorm, tconv=args.tconv, residual=residual, lsc=learnable_sc).to(device)
-    netD = Discriminator(sn=args.spectral, lrelu=args.lrelu, residual=residual, lsc=learnable_sc).to(device)
+    netG = Generator(nz=nz, batchnorm=args.batchnorm, tconv=args.tconv, residual=residual, lsc=learnable_sc, use_emb=args.embedding).to(device)
+    netD = Discriminator(sn=args.spectral, lrelu=args.lrelu, residual=residual, lsc=learnable_sc, use_emb=args.embedding).to(device)
 
     # Print number of params
     print("Generator trainable weights: ", sum(p.numel() for p in netG.parameters() if p.requires_grad))
