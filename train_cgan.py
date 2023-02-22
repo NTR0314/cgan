@@ -1,17 +1,17 @@
 import argparse
 import os
 from pathlib import Path
-import torch.optim as optim
 
-import numpy as np
 import torch
+import torch.optim as optim
 from torch import nn
-import util.visualization as vis
-import util.training
-from util.io_custom import get_cifar_datasets, load_best_cp_data
 from torch.nn import functional as F
+
+import util.training
+import util.visualization as vis
 from util import metrics as me
-from util.architecture import GeneratorBlock, DiscriminatorBlock, UpsampleConv
+from util.architecture import GeneratorBlock, DiscriminatorBlock
+from util.io_custom import get_cifar_datasets, load_best_cp_data
 
 
 class Generator(nn.Module):
@@ -25,7 +25,6 @@ class Generator(nn.Module):
         if self.use_emb:
             self.emb_layer = nn.Embedding(10, 50)
             self.linear = nn.Linear(nz + 50, 4 ** 2 * ngf)
-
 
         self.gb1 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc, batchnorm=self.batchnorm)
         self.gb2 = GeneratorBlock(ngf, tconv=True, residual=residual, learnable_sc=lsc, batchnorm=self.batchnorm)
@@ -63,16 +62,21 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10, residual=True, lsc=True, use_emb=False, leastsquare=False):
+    def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10, residual=True, lsc=True, use_emb=False,
+                 leastsquare=False):
         super(Discriminator, self).__init__()
 
         self.sn = sn
         self.leastsquare = leastsquare
         self.num_classes = num_classes
-        self.d1 = DiscriminatorBlock(nc, ndf, suppres_first_relu=True, down_sample=True, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
-        self.d2 = DiscriminatorBlock(ndf, ndf, down_sample=True, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
-        self.d3 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
-        self.d4 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual, learnable_sc=lsc)
+        self.d1 = DiscriminatorBlock(nc, ndf, suppres_first_relu=True, down_sample=True, lrelu=lrelu, sn=sn,
+                                     residual=residual, learnable_sc=lsc)
+        self.d2 = DiscriminatorBlock(ndf, ndf, down_sample=True, lrelu=lrelu, sn=sn, residual=residual,
+                                     learnable_sc=lsc)
+        self.d3 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual,
+                                     learnable_sc=lsc)
+        self.d4 = DiscriminatorBlock(ndf, ndf, down_sample=False, lrelu=lrelu, sn=sn, residual=residual,
+                                     learnable_sc=lsc)
         self.use_emb = use_emb
         if self.use_emb:
             self.emb_layer = torch.nn.Embedding(10, 50)
@@ -100,7 +104,6 @@ class Discriminator(nn.Module):
         else:
             oh = F.one_hot(y.long(), num_classes=self.num_classes).float()
             emb_label = self.emb(oh)
-
 
         proj = torch.sum(emb_label * x, 1, keepdim=True)  # b x 1
         lin = self.ll(x)
@@ -150,8 +153,10 @@ if __name__ == '__main__':
     residual = not args.noresidual
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    netG = Generator(nz=nz, batchnorm=args.batchnorm, tconv=args.tconv, residual=residual, lsc=learnable_sc, use_emb=args.embedding).to(device)
-    netD = Discriminator(sn=args.spectral, lrelu=args.lrelu, residual=residual, lsc=learnable_sc, use_emb=args.embedding).to(device)
+    netG = Generator(nz=nz, batchnorm=args.batchnorm, tconv=args.tconv, residual=residual, lsc=learnable_sc,
+                     use_emb=args.embedding).to(device)
+    netD = Discriminator(sn=args.spectral, lrelu=args.lrelu, residual=residual, lsc=learnable_sc,
+                         use_emb=args.embedding).to(device)
 
     # Print number of params
     print("Generator trainable weights: ", sum(p.numel() for p in netG.parameters() if p.requires_grad))
@@ -175,7 +180,8 @@ if __name__ == '__main__':
 
     if args.training:
         util.training.train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dataset_train,
-                                  dataset_test, device, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores,
+                                  dataset_test, device, optimizerG, optimizerD, img_list, G_losses, D_losses,
+                                  inc_scores,
                                   best_epoch, start_epoch, no_improve_count, ls_loss=False, sloppy=args.sloppy)
 
     # Generate images if flag is set.
@@ -233,7 +239,6 @@ if __name__ == '__main__':
         #             print(f"real image label = {x}, current eval class = {class_i}")
         #         fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
         #         f.write(f"FID-Class (last cp) {label_names[class_i].decode()}: {fid_i}\n")
-
 
     netG, netD, optimizerG, optimizerD, img_list, G_losses, D_losses, inc_scores, best_epoch, start_epoch, no_improve_count = load_best_cp_data(
         model_path, netG, netD, optimizerG, optimizerD)
