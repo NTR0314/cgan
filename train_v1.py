@@ -13,6 +13,15 @@ from util import metrics as me
 
 
 class UpsampleConv(nn.Module):
+    """
+    nn Module that combines Upsampling and a Convolution layer.
+
+    Args:
+        in_feat: input feature size of conv layer
+        out_feat: output feature size of conv layer
+        scale_factor: scale factor for Upsampling layer
+        sn: flag for Spectral Normalization
+    """
     def __init__(self, in_feat, out_feat, scale_factor=2, sn=False):
         super().__init__()
         self.us = nn.Upsample(scale_factor=scale_factor)
@@ -25,6 +34,14 @@ class UpsampleConv(nn.Module):
 
 
 class Generator(nn.Module):
+    """
+    Generator of the GAN architecture
+
+    Args:
+        nz: Dimension of noise that is fed into the Generator
+        ngf: hyper-parameter that determines the hidden size of the Generator
+        nc: Number of channels of the image. Default = 3 because of [R, G, B]. Could be 4 for PNG images with Alpha
+    """
     def __init__(self, nz, ngf, nc):
         super(Generator, self).__init__()
         self.label_upscale = nn.Sequential(
@@ -75,6 +92,14 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
+    """
+    Discriminator of the GAN architecture
+
+    Args:
+        nz: Dimension of noise that is fed into the Generator
+        ngf: hyper-parameter that determines the hidden size of the Generator
+        nc: Number of channels of the image. Default = 3 because of [R, G, B]. Could be 4 for PNG images with Alpha
+    """
     def __init__(self, nz, ngf, nc):
         super(Discriminator, self).__init__()
         # 10 x 1 x 1 -> 1 x 16 x 16

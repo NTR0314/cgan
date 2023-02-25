@@ -15,6 +15,21 @@ from util.io_custom import get_cifar_datasets, load_best_cp_data
 
 
 class Generator(nn.Module):
+    """
+    Generator of the GAN architecture.
+
+    Args:
+        nz: Dimension of noise that is fed into the Generator
+        ngf: hyper-parameter that determines the hidden size of the GeneratorBlock layers
+        nc: Number of channels of the image. Default = 3 because of [R, G, B]. Could be 4 for PNG images with Alpha
+        channel.
+        batchnorm: Flag if batchnorm layers should be used.
+        tconv: Flag of transposed convolution layers should be used.
+        residual: Flag if residual connections should be used.
+        lsc: Flag if the weight of the residual connection should be learnable
+        use_emb: Flag if torch.nn.Embedding should be used as embedding instead of a linear layer.
+
+    """
     def __init__(self, nz, ngf=64, nc=3, batchnorm=True, tconv=True, residual=True, lsc=True, use_emb=False):
         super(Generator, self).__init__()
         self.ngf = ngf
@@ -62,6 +77,18 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
+    """
+    Discriminator of the GAN architecture.
+
+    Args:
+          ndf: hyperparameter that determines the hidden size of Disciminator Blocks
+          nc: Number of image channels
+          lrelu: Flag if LReLU should be used isntead of ReLU
+          num_classes: Number of classes for the last linear classification layer
+          residual: Flag if residual connections should be used.
+          lsc: Flag if the weight of the residual connection should be learnable
+          use_emb: Flag if torch.nn.Embedding should be used as embedding instead of a linear layer.
+    """
     def __init__(self, ndf=64, nc=3, sn=True, lrelu=True, num_classes=10, residual=True, lsc=True, use_emb=False,
                  leastsquare=False):
         super(Discriminator, self).__init__()
