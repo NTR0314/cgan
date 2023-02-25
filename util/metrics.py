@@ -8,6 +8,10 @@ from torch.nn import functional as F
 from torchvision.models.inception import inception_v3
 from torchmetrics.image.fid import FrechetInceptionDistance
 
+"""
+Utility class for metrics: FID/IS
+"""
+
 def gen_images(generator, device, nz, num_img_per_class=100):
     # Set neccessary seeds for reproducability
     np.random.seed(1337)

@@ -25,6 +25,34 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dat
                 optimizerG, optimizerD,
                 img_list=[], G_losses=[], D_losses=[], inc_scores=[],
                 best_epoch=0, start_epoch=0, no_improve_count=0, ls_loss=True, sloppy=False):
+    """
+    Method for training the GAN model
+
+    Args:
+        model_path: Save path of the trained model
+        num_epochs: max number of epochs to train the model
+        batch_size: batch size
+        workers: amount of cpu workers
+        netD: Discriminator neural net
+        netG: Generator neural net
+        nz: hidden size of noise input for Generator
+        dataset_train: Training datsaset
+        dataset_dev: Validation dataset
+        device: gpu/cpu device
+        optimizerD: optimizer for discriminator
+        optimizerG: optimizer for generator
+        img_list: list of generated images while training for progess visualization
+        G_losses: history of generator losses
+        D_losses: history of discriminator losses
+        inc_scores: history of incepotion scores for each epoch
+        best_epoch: best epoch so far
+        start_epoch: starting epoch used for continuing training
+        no_improve_count: amount of epochs since the model has not improived on the dev dataset
+        ls_loss: whether or not to use least square loss
+        sloppy: flag for 50 isntead of 1000 images for calculating FID/IS scores each epoch
+
+    """
+
     # Set random seed for reproducibility
     manual_seed = 1337
     print("Using seed: ", manual_seed)

@@ -2,6 +2,20 @@ from torch import nn
 
 
 class DiscriminatorBlock(nn.Module):
+    """
+    DiscriminatorBlock of the Discriminator
+
+    Args:
+        in_ch: input feature size of conv layers
+        out_ch: output feature size of the conv layers
+        lrelu: flag for LReLU
+        suppres_first_relu: Do not use first relu activation (in case the output previously already did that)
+        down_sample: flag if the dimension should be downsampled
+        sn: Flag for spectral normalization
+        do: Flag for dropout
+        learnable_sc: flag for learnable weight for res connections
+        residual: flag to use residual connections
+    """
     def __init__(self, in_ch, out_ch, lrelu=False, suppres_first_relu=False, down_sample=True, sn=True, do=False, learnable_sc=True, residual=True):
         super().__init__()
         self.in_ch = in_ch
@@ -59,6 +73,17 @@ class DiscriminatorBlock(nn.Module):
 
 
 class GeneratorBlock(nn.Module):
+    """
+    GeneratorBlock of the Generator
+
+    Args:
+        ngf: hyperparemeter that determines the hidden size of conv layers
+        batchnorm: flag for batchnorm layer usage
+        tconv: flag for usage of transposed convolution instead of Upsample + Convolution
+        do: Flag for dropout
+        learnable_sc: flag for learnable weight for res connections
+        residual: flag to use residual connections
+    """
     def __init__(self, ngf, batchnorm=True, tconv=True, residual=True, do=False, learnable_sc=True):
         super().__init__()
         self.batchnorm = batchnorm
@@ -97,7 +122,6 @@ class GeneratorBlock(nn.Module):
         if self.residual:
             if self.learnable_sc:
                 residual = self.sc_conv(nn.Upsample(scale_factor=2)(orig))
-                #print(residual.shape)
                 return x + residual
             else:
                 return x + nn.Upsample(scale_factor=2)(x)
@@ -106,6 +130,15 @@ class GeneratorBlock(nn.Module):
 
 
 class UpsampleConv(nn.Module):
+    """
+    nn Module that combines Upsampling and a Convolution layer.
+
+    Args:
+        in_feat: input feature size of conv layer
+        out_feat: output feature size of conv layer
+        scale_factor: scale factor for Upsampling layer
+        sn: flag for Spectral Normalization
+    """
     def __init__(self, in_feat, out_feat, scale_factor=2, sn=False):
         super().__init__()
         self.us = nn.Upsample(scale_factor=scale_factor)

@@ -1,11 +1,13 @@
 import os
 import pickle
-from collections import OrderedDict
-
-import numpy as np
 import torch
+from collections import OrderedDict
 from torch.utils.data import Dataset
 
+"""
+Utility class for helper functions
+
+"""
 
 def unpickle(file):
     with open(file, 'rb') as fo:

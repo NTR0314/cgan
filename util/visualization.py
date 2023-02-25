@@ -7,6 +7,9 @@ import torchvision.utils as vutils
 
 
 def gen_plots(img_list, G_losses, D_losses, base_path, model_name=""):
+    """
+    Helper function to create plots for the presentation
+    """
     # Generate Animation of training progress
     fig = plt.figure(figsize=(8, 8))
     plt.axis("off")
