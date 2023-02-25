@@ -48,6 +48,6 @@ model_path="/home/kit/stud/<user>/NN_pr/models/${model_name}"
 log_path="${model_path}/training.log"
 
 mkdir -p $model_path
-python3 "/home/kit/stud/ufkpt/NN_pr/train_cgan.py" -m $model_name -g -t -s --batchnorm --leastsquare --tconv --lrelu --spectral &>> $log_path
+python3 "/home/kit/stud/ufkpt/NN_pr/train_v2.py" -m $model_name -g -t -s --batchnorm --leastsquare --tconv --lrelu --spectral &>> $log_path
 
 ```
