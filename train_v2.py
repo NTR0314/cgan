@@ -217,13 +217,12 @@ if __name__ == '__main__':
         print("Calculating last Inception score for best cp")
         reals = torch.stack([data['feat'] for data in dataset_test])
         real_labels = torch.stack([data['label'] for data in dataset_test])
-        print(reals.shape)
         gen_imgs = me.gen_images(netG, device, nz)
         test_fid = me.FID_torchmetrics(gen_imgs, reals)
         test_is_mean, test_is_std = me.inception_score_torchmetrics(gen_imgs)
 
         # Save best scores
-        if not args.thousand_fid:
+        if args.thousand_fid:
             with open(model_path / 'final_inception_score_best.txt', 'w+') as f:
                 f.write(f"Best epoch was: {best_epoch}\n")
                 f.write(f"Inception scores torchmetrics. ('best' cp) Mean: {test_is_mean}, std: {test_is_std}\n")
@@ -231,16 +230,12 @@ if __name__ == '__main__':
                 # Calc FID score for each class
                 for class_i in range(10):
                     gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
-                    for x in real_labels[class_i * 100:(class_i + 1) * 100]:
-                        print(f"real image label = {x}, current eval class = {class_i}")
                     fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
                     f.write(f"FID-Class (best cp) {label_names[class_i].decode()}: {fid_i}\n")
                 dataset_test = util.io_custom.get_cifar_datasets_test_1000()
                 reals = torch.stack([data['feat'] for data in dataset_test])
                 for class_i in range(10):
                     gen_imgs_class = me.gen_images_class(netG, device, nz, 1000, class_i)
-                    for x in real_labels[class_i * 1000:(class_i + 1) * 1000]:
-                        print(f"real image label = {x}, current eval class = {class_i}")
                     fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 1000:(class_i + 1) * 1000])
                     f.write(f"FID-Class-1000 (best cp) {label_names[class_i].decode()}: {fid_i}\n")
 

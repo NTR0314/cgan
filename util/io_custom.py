@@ -153,7 +153,6 @@ def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD, last=False
         net_g_dict = model['netG_state_dict']
         # DEBUG
         # Explanation: Sometimes there were some prefixes in the dictionary of weights. Then I would have to delete them.
-        print(f"\n\n{net_d_dict.keys()=}\n\n")
         net_d_dict_fixed = OrderedDict([(k[len('module.'):], v) if 'module.' in k else (k,v) for k, v in net_d_dict.items()])
         net_g_dict_fixed = OrderedDict([(k[len('module.'):], v) if 'module.' in k else (k,v) for k, v in net_g_dict.items()])
 
