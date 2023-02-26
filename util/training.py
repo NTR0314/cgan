@@ -14,6 +14,8 @@ from . import metrics as me
 
 def weights_init(m):
     # custom weights initialization called on netG and netD
+    # This is not my, Oswald Zink, own idea but taken from some blog post.
+
     if type(m) == nn.Conv2d or type(m) == nn.ConvTranspose2d:
         nn.init.normal_(m.weight.data, 0.0, 0.02)
     elif type(m) == nn.BatchNorm2d:
@@ -164,80 +166,35 @@ def train_model(model_path, num_epochs, batch_size, workers, netD, netG, nz, dat
             fake = netG(fixed_noise, fixed_labels).detach().cpu()
             img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
 
-        if sloppy:
-            # Calc IS/FID/class-FID for each Epoch
-            gen_imgs = me.gen_images(netG, device, nz, num_img_per_class=50)
-            # Calc IS
-            is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
-            inc_scores.append((is_mean, is_std))
-            best_epoch = epoch
+        # Sloppy means that we only calculate 50 images per class instead of 1000 because of heavy computation time
+        # This results in inaccurate scores though
+        num_img = 50 if sloppy else 1000
+        # Calc IS/FID/class-FID for each Epoch
+        gen_imgs = me.gen_images(netG, device, nz, num_img_per_class=num_img)
+        # Calc IS
+        is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
+        inc_scores.append((is_mean, is_std))
+        best_epoch = epoch
 
-            # Save best pt, compare mean.
-            if is_mean >= max(inc_scores, key=lambda x: x[0])[0]:
-                # Save best
-                torch.save({
-                    'img_list': img_list,
-                    'netD_state_dict': netD.state_dict(),
-                    'netG_state_dict': netG.state_dict(),
-                    'optimizer_g_state_dict': optimizerG.state_dict(),
-                    'optimizer_d_state_dict': optimizerD.state_dict(),
-                    'G_losses': G_losses,
-                    'D_losses': D_losses,
-                    'inc_scores': inc_scores,
-                    'start_epoch': epoch,
-                    'best_epoch': best_epoch,
-                    'no_improve_count': no_improve_count
-                }, model_path / f'model_best.pth')
-                no_improve_count = 0
-            else:
-                no_improve_count += 1
-
-            # Stop if not improvement after 15 epochs
-            # if no_improve_count >= 15:
-            #     print("No improvements for 15 epochs. Breaking train loop")
-            #     break
+        # Save best pt, compare mean.
+        if is_mean >= max(inc_scores, key=lambda x: x[0])[0]:
+            # Save best
+            torch.save({
+                'img_list': img_list,
+                'netD_state_dict': netD.state_dict(),
+                'netG_state_dict': netG.state_dict(),
+                'optimizer_g_state_dict': optimizerG.state_dict(),
+                'optimizer_d_state_dict': optimizerD.state_dict(),
+                'G_losses': G_losses,
+                'D_losses': D_losses,
+                'inc_scores': inc_scores,
+                'start_epoch': epoch,
+                'best_epoch': best_epoch,
+                'no_improve_count': no_improve_count
+            }, model_path / f'model_best.pth')
+            no_improve_count = 0
         else:
-            # Calc IS/FID/class-FID for each Epoch
-            gen_imgs = me.gen_images(netG, device, nz)  # Generate 1000 random images from generator
-            # Calc IS
-            before_time = time.time()
-            is_mean, is_std = me.inception_score_torchmetrics(gen_imgs)
-            print(f"Inception score calculation took {time.time() - before_time} seconds")
-            inc_scores.append((is_mean, is_std))
-            # Calc FID for dev set
-            reals = torch.stack([data['feat'] for data in dataset_dev])
-            reals_labels = torch.stack([data['label'] for data in dataset_dev])
-
-            before_time = time.time()
-            fid_dev = me.FID_torchmetrics(gen_imgs, reals)
-            print(f"FID dev score calculation took {time.time() - before_time} seconds")
-            fid_scores.append(fid_dev)
-            # Calc FID score for each class
-            for class_i in range(10):
-                before_time = time.time()
-                gen_imgs_class = me.gen_images_class(netG, device, nz, 100, class_i)
-                mid_time = time.time()
-                fid_i = me.FID_torchmetrics(gen_imgs_class, reals[class_i * 100:(class_i + 1) * 100])
-                print(f"Current label/clas is {class_i}")
-                print(f"FID passed image labes are: {reals_labels[class_i * 100:(class_i + 1) * 100]}")
-                print(f"FID class {class_i} score calculation took {time.time() - mid_time} seconds")
-                print(f"FID class {class_i} image generation took  {mid_time - before_time} seconds")
-                if not class_i in fid_scores_classes:
-                    fid_scores_classes[class_i] = [fid_i]
-
-            # Save best pt, compare mean.
-            if fid_dev <= min(fid_scores):
-                # Save best
-                torch.save(netD.state_dict(), model_path / f'model_weights_netD_best.pth')
-                torch.save(netG.state_dict(), model_path / f'model_weights_netG_best.pth')
-                no_improve_count = 0
-            else:
-                no_improve_count += 1
-
-            # Stop if not improvement after 15 epochs
-#            if no_improve_count >= 15:
-#                print("No improvements for 15 epochs. Breaking train loop")
-#                break
+            no_improve_count += 1
 
         # Save training data every epoch.
         torch.save({

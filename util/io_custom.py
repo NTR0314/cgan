@@ -9,6 +9,7 @@ Utility class for helper functions
 
 """
 
+# Used for loading CIFAR dataset.
 def unpickle(file):
     with open(file, 'rb') as fo:
         out = pickle.load(fo, encoding='bytes')
@@ -16,6 +17,9 @@ def unpickle(file):
 
 
 class CIFARDataset(Dataset):
+    """
+    Custom DataSet for the CIFAR dataset.
+    """
     def __init__(self, batches_data, batches_label):  # Constructor
         self.data = list(zip(batches_data, batches_label))
 
@@ -37,8 +41,10 @@ def get_cifar_datasets():
         data_batch = unpickle(file_path)
         data_batch_feats = torch.tensor(data_batch[b'data'])
         data_batch_len = data_batch_feats.shape[0]
+        # Normalize data
         data_batch_feats = (torch.reshape(data_batch_feats, (data_batch_len, 3, 32, 32)) - 127.5) / 127.5
 
+        # Concatenate all the training segments to one long tensor for the Dataset
         data_batches_data = torch.cat((data_batches_data, data_batch_feats), 0)
         data_batches_label = torch.cat((data_batches_label, torch.tensor(data_batch[b'labels'])), 0)
 
@@ -46,17 +52,19 @@ def get_cifar_datasets():
     train_batches_data = torch.squeeze(data_batches_data)
     train_batches_label = torch.squeeze(data_batches_label)
 
-    # [1,2, ...] -> [dog ...] ?
+    # Containns the image label strings such as: [1,2, ...] -> [dog ...]
     label_names = unpickle("cifar-10-batches-py/batches.meta")[b'label_names']
 
     test_batch = unpickle("cifar-10-batches-py/test_batch")
     test_batch_data = torch.tensor(test_batch[b'data'])
     test_batch_len = test_batch_data.shape[0]
+    # Normalize
     test_batch_data = (torch.reshape(test_batch_data, (test_batch_len, 3, 32, 32)) - 127.5) / 127.5
     test_batch_label = torch.tensor(test_batch[b'labels'])
 
     train_dataset = CIFARDataset(train_batches_data, train_batches_label)
 
+    # Custom loop over the dataset to create a balanced dataset for validation. Important for FID/IS score.
     class_ctr = [0] * 10
     dev_set_imgs = [torch.empty(0) for _ in range(10)]
     dev_set_labels = [torch.empty(0) for _ in range(10)]
@@ -75,18 +83,15 @@ def get_cifar_datasets():
                         dev_set_labels[i] = label.unsqueeze(0)
                         break
                     else:
-#                        print(f"image shape: {image.shape}")
                         dev_set_imgs[i] = torch.cat((dev_set_imgs[i], image.unsqueeze(0)), 0)
                         dev_set_labels[i] = torch.cat((dev_set_labels[i], label.unsqueeze(0)), 0)
                         class_ctr[i] += 1
                         break
 
-#    print(dev_set_imgs[i].shape)
     for i in range(10):
         dev_set_imgs[i] = dev_set_imgs[i].squeeze()
     test_set_images = torch.cat(dev_set_imgs)
     test_set_labels = torch.cat(dev_set_labels)
-#    print(test_set_images.shape)
 
     # This is sorted 100 labels per class 1000 in total
     test_dataset = CIFARDataset(test_set_images, test_set_labels)
@@ -94,6 +99,9 @@ def get_cifar_datasets():
     return train_dataset, test_dataset, label_names
 
 def get_cifar_datasets_test_1000():
+    """
+    Same functionality as get_cifar_dataset() but creates a validation dataset with 1000 images per class instead.
+    """
     test_batch = unpickle("cifar-10-batches-py/test_batch")
     test_batch_data = torch.tensor(test_batch[b'data'])
     test_batch_len = test_batch_data.shape[0]
@@ -125,6 +133,10 @@ def get_cifar_datasets_test_1000():
     return test_dataset
 
 def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD, last=False):
+    """
+    Helper function to load existing checkpoints
+
+    """
     # Load stuff if existing
     if not last:
         best_cp_path = model_path / 'model_best.pth'
@@ -140,6 +152,7 @@ def load_best_cp_data(model_path, netG, netD, optimizerG, optimizerD, last=False
         net_d_dict = model['netD_state_dict']
         net_g_dict = model['netG_state_dict']
         # DEBUG
+        # Explanation: Sometimes there were some prefixes in the dictionary of weights. Then I would have to delete them.
         print(f"\n\n{net_d_dict.keys()=}\n\n")
         net_d_dict_fixed = OrderedDict([(k[len('module.'):], v) if 'module.' in k else (k,v) for k, v in net_d_dict.items()])
         net_g_dict_fixed = OrderedDict([(k[len('module.'):], v) if 'module.' in k else (k,v) for k, v in net_g_dict.items()])

@@ -13,6 +13,12 @@ Utility class for metrics: FID/IS
 """
 
 def gen_images(generator, device, nz, num_img_per_class=100):
+    """
+    Helper function to generate `num_img_per_class` images of each class given a generator.
+
+    Used for evaluation, i.e., FID/IS score.
+    """
+
     # Set neccessary seeds for reproducability
     np.random.seed(1337)
     torch.manual_seed(1337)
@@ -30,6 +36,9 @@ def gen_images(generator, device, nz, num_img_per_class=100):
     return torch.stack(gen_imgs)
 
 def gen_images_class(generator, device, nz, num_imgs, class_id):
+    """
+    Same as `gen_images()` but generate images of a specific class. This is used for the class specific FID score.
+    """
     np.random.seed(1337)
     torch.manual_seed(1337)
     random.seed(1337)
@@ -46,17 +55,16 @@ def gen_images_class(generator, device, nz, num_imgs, class_id):
 
 
 def inception_score_own(imgs, device, cuda=True, batch_size=128, upscale=False, splits=1):
-    # Evaluate model
-    # Inception score
-    # Idee: Nutze pretrained inceptionv3 Klassifikator und berechne zuerst die marginale Distribution von
-    # random gesampleten images vom Generator p(y), wobei y die Label bezeichne
-    # Berechne dann noch p(y|x) für jedes weitere generierte Bild x
     """Computes the inception score of the generated images imgs
     imgs -- Torch dataset of (3xHxW) numpy images normalized in the range [-1, 1]
     cuda -- whether or not to run on GPU
     batch_size -- batch size for feeding into Inception v3
     splits -- number of splits
+
+    NOTE: This is my (Oswald Zink) initial IS score implementation. We opted for the torchmetrics library in the end.
+    Therefore, this is not used legacy code but because of the time spent on it we decided to keep it.
     """
+
     # How should N be chosen? 50.000 as the original paper suggests: Improved Techniques for Training GANs
     N = len(imgs)
 
@@ -118,6 +126,7 @@ def inception_score_own(imgs, device, cuda=True, batch_size=128, upscale=False, 
 
 def inception_score_torchmetrics(imgs):
     """
+    Wrapper function for torchmetrics IS score
 
     :param imgs: Tensor of images -> batch x rgb (3) x height x width
     :return: (mean, std)
@@ -132,6 +141,7 @@ def inception_score_torchmetrics(imgs):
 
 def FID_torchmetrics(imgs, reals):
     """
+    Wrapper function for torchmetrics FID score.
 
     :param imgs: Tensor of images -> batch x rgb (3) x height x width
     :return: FID scalar tensor

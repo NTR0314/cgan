@@ -16,7 +16,9 @@ class DiscriminatorBlock(nn.Module):
         learnable_sc: flag for learnable weight for res connections
         residual: flag to use residual connections
     """
-    def __init__(self, in_ch, out_ch, lrelu=False, suppres_first_relu=False, down_sample=True, sn=True, do=False, learnable_sc=True, residual=True):
+
+    def __init__(self, in_ch, out_ch, lrelu=False, suppres_first_relu=False, down_sample=True, sn=True, do=False,
+                 learnable_sc=True, residual=True):
         super().__init__()
         self.in_ch = in_ch
         self.residual = residual
@@ -48,7 +50,6 @@ class DiscriminatorBlock(nn.Module):
                 residual = self.sc_conv(residual)
         if self.ds:
             residual = nn.AvgPool2d(kernel_size=2)(residual)
-
 
         if not self.suppres_first_relu:
             if self.lrelu:
@@ -84,6 +85,7 @@ class GeneratorBlock(nn.Module):
         learnable_sc: flag for learnable weight for res connections
         residual: flag to use residual connections
     """
+
     def __init__(self, ngf, batchnorm=True, tconv=True, residual=True, do=False, learnable_sc=True):
         super().__init__()
         self.batchnorm = batchnorm
@@ -139,6 +141,7 @@ class UpsampleConv(nn.Module):
         scale_factor: scale factor for Upsampling layer
         sn: flag for Spectral Normalization
     """
+
     def __init__(self, in_feat, out_feat, scale_factor=2, sn=False):
         super().__init__()
         self.us = nn.Upsample(scale_factor=scale_factor)
