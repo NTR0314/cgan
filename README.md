@@ -51,3 +51,10 @@ mkdir -p $model_path
 python3 "/home/kit/stud/ufkpt/NN_pr/train_v2.py" -m $model_name -g -t -s --batchnorm --leastsquare --tconv --lrelu --spectral &>> $log_path
 
 ```
+
+The resulting generated data in `$model_path` should look likes this (With additional checkpoints not shown for simplicity).
+The final evaluation results of the model are saved in `final_inception_score_best.txt`:
+```commandline
+[user@hostname modelname]$ ls !(model_[0-9]*.pth)
+architecture.txt  final_inception_score_best.txt  model_best.pth  training.log
+```
